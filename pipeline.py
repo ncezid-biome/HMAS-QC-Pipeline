@@ -1,5 +1,6 @@
+#!/usr/bin/env python
 
-import logging, sys, os, argparse
+import logging, sys, os, argparse, shutils
 
 #### Import config file with user inputs
 # Check that all the inputs are there
@@ -7,19 +8,32 @@ import logging, sys, os, argparse
 # Add: a switch that evaluates config settings based on user choice
 # Add getops flags: batch mode vs. single sample
 
-aparser = argparse.ArgumentParser(description='Run in batch mode or run a single sample.')
-
-aparser.add_argument('-b', action='store', help='Run in batch mode')
-aparser.add_argument('-s', action='store', help='Run a single sample')
+aparser = argparse.ArgumentParser(description = 'Run in batch mode or run a single sample.')
+group = aparser.add_mutually_exclusive_group()
+aparser.add_argument('-b', '--batch', metavar = '', help = 'Run in batch mode')
+aparser.add_argument('-s', '--single', metavar = '', help = 'Run a single sample')
 
 args = aparser.parse_args()
+
+# Note: This is a placeholder (will use the args to direct the program)
+# I will finish them when I implement the Classes
+
+if args.batch:
+    pass 
+
+if args.single:
+    pass
 
 from configparser import ConfigParser
 
 parser = ConfigParser()
 parser.read('settings.ini')
 
-# Function to check the config file
+# Function to check the config file: WILL RE-THINK THIS WHOLE PART
+
+# Check that each section is present
+# Check that each option w/i given section is present
+# Check that user has provided input for each option
 def ConfigCheck(section):
     dict1 = {}
     inputkeys = parser.options(section)
@@ -27,13 +41,13 @@ def ConfigCheck(section):
         try:
             dict1[option] = parser.get(section, option)
             if dict1[option] == -1:
-                DebugPrint("skip: %s" % option)
+                DebugPrint('{0} option not specified'.format(option))
         except:
             print("exception on %s!" % option)
             dict1[option] = None
     return dict1
 
-# Import and check all the variables
+# Import and check all the variables: THIS WILL CHANGE TOO
 
 # Note: 
 input_dir = ConfigCheck('file_inputs')['input_dir']
@@ -61,11 +75,20 @@ numseqs = int(ConfigCheck('rare_seqs_param')['nseqs'])
 for file in (read1, read2, index1, index2, oligosfile):
     if not os.path.exists(file):
         missing_file_flag = 1
-        print("File %s not found" % file)
+        print('File {0} not found'.format(file))
         
 if missing_file_flag == 1:
     print("Program exited because an input file was not found", sys.stderr)
     sys.exit(1)
+
+# Check explicitly that Mothur is on the path (mothur_py will also check)
+# Probably want to do this in a nicer way - when I update the other checks
+def find_tool(name):
+    return shutil.which(name) is not None
+
+if find_tool("mothur") == False:
+        print('{0} not found on path. Is it installed?'.format(name), sys.stderr)
+        sys.exit(1)
 
 # Import Mothur
 try:
