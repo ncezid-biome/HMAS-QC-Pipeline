@@ -4,10 +4,14 @@ import logging, sys, os, argparse, shutils
 import mpy_batch, config_checker
 
 # Parse user arguments (which specify the config file)
+if len(sys.argv) < 2:
+    print('You forgot to specify your config file!')
+    sys.exit(1)
+
 parser = argparse.ArgumentParser(description = 'Run in batch mode or run a single sample.')
 parser.add_argument('-c', '--config', metavar = '', help = 'Specify configuration file')
 
-args = parser.parse_args()
+args = parser.parse_args() # yields a Namespace object
 
 # Send the specified config file to the config_checker program
 # Run the config_checker program and return
@@ -15,14 +19,15 @@ config_checker.main()
 
 
 # Check that the input files exist
-for file in (read1, read2, index1, index2, oligosfile):
-    if not os.path.exists(file):
-        missing_file_flag = 1
-        print('File {0} not found'.format(file))
-        
-if missing_file_flag == 1:
-    print("Program exited because an input file was not found", sys.stderr)
-    sys.exit(1)
+def checkFile(filename):
+    try: 
+        f = open(filename)
+        f.close()
+    except FileNotFoundError:
+        print('File not found, did you remember to create it?')
+
+# Also check the batch file - will need to import the name here somehow
+checkFile(oligosfile))
 
 # Check explicitly that Mothur is on the path (mothur_py will also check)
 # Probably want to do this in a nicer way - when I update the other checks

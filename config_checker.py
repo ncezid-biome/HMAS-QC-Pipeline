@@ -47,4 +47,4 @@ def main():
     rdif = config.getint('pcr_params')('rdiffs', fallback = 0)
     numseqs = config.getint('rare_seqs_param')('nseqs', fallback = 9)
         
-
+    # Export these variables back to main script

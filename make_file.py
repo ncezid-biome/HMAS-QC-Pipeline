@@ -45,7 +45,7 @@ file_list = [fwd_reads, rev_reads, fwd_inds]
 for f in os.listdir():
     fname, fext = os.path.splitext(f)
     if fext == extension:
-        logger.info("File: {}".format(fname))
+        logger.info("File added: {}".format(fname))
         if f_read_id in fname:
             fwd_reads.append(f)
         if r_read_id in fname:
@@ -65,11 +65,6 @@ if not all(len(l) == list_len for l in iter_list):
     logger.error("Each sample must have exactly one forward read, one reverse read, and one index file.")
     # Maybe print the lists here so user can see what happened
 
-logger.info(print(fwd_reads))
-logger.info(print(rev_reads))
-logger.info(print(fwd_inds))
-print("The forward reads: ")
-print(fwd_reads)
 
 # Sort the lists and write to formatted file
 # Note: I'm not entirely comfortable with the robustness of sorting... 
