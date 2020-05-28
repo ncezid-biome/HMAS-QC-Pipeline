@@ -2,16 +2,10 @@
 
 import pipeline
 from mothur_py import Mothur
-m = Mothur()
 
 
-# Import the config settings
-configFile = config_checker.main()
-
-# Import the make.file
-
-
-def main(configFile):
+def main():
+    m = Mothur()
     m.make.contigs(file = 'current',
                     processors= config.getint('contigs_params')('processors', fallback = 40), 
                     format=config.get('contigs_params')('format', fallback = 'illumina1.8+'), 
