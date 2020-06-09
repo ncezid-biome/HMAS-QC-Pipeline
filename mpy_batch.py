@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import pipeline
 from mothur_py import Mothur
+
 
 
 def main():

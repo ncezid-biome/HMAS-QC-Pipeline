@@ -45,7 +45,6 @@ def main():
     # Import Mothur
     try:
         from mothur_py import Mothur
-        m = Mothur()
     except:
         print("Unable to import mothur_py module.  Is it installed and on the path?")
         print("Program exited because mothur_py could not be imported", sys.stderr)
