@@ -3,14 +3,6 @@
 import logging, sys, os, argparse, shutil
 import mpy_batch, config_checker
 
-# Parse user arguments (which specify the config file)
-if len(sys.argv) < 2:
-    print('You forgot to specify your config file!')
-    sys.exit(1)
-
-parser = argparse.ArgumentParser(description = 'Run in batch mode or run a single sample.')
-parser.add_argument('-c', '--config', metavar = '', help = 'Specify configuration file')
-
 # Check that the input files exist
 def checkFile(filename):
     try: 
@@ -30,11 +22,9 @@ def main():
     #parser = argparse.ArgumentParser(description = 'Run in batch mode or run a single sample.')
     #parser.add_argument('-c', '--config', metavar = '', help = 'Specify configuration file')
 
-    args = parser.parse_args() # yields a Namespace object
-
     # Send the specified config file to the config_checker program
     # Run the config_checker program and return
-    configFile = config_checker.main()
+    configFile = config_checker.main() # yields a config object
 
     checkFile(oligosfile)
 
@@ -57,5 +47,10 @@ def main():
     
 
 if __name__ == "__main__":
-    main()
+    # Parse user arguments (which specify the config file)
+    parser = argparse.ArgumentParser(description = 'Run Mothur QC pipeline on HMAS data.')
+    parser.add_argument('-c', '--config', metavar = '', help = 'Specify configuration file')
+    args = parser.parse_args() # yields a Namespace objec:x!
+
+    main(args)
 

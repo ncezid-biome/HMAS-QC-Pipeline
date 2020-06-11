@@ -1,11 +1,14 @@
 #!/usr/bin/env python
-
+import os
 from mothur_py import Mothur
 
 
 
 def main():
+    currentDir = os.getcwd()
     m = Mothur()
+    m.set.dir(input = config.get('file_inputs')('input_dir', fallback = currentDir))
+    m.set.dir(output = config.get('file_inputs')('output_dir', fallback = currentDir)) 
     m.make.contigs(file = 'current',
                     processors= config.getint('contigs_params')('processors', fallback = 40), 
                     format=config.get('contigs_params')('format', fallback = 'illumina1.8+'), 
