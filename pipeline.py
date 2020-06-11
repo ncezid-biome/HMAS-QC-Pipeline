@@ -18,10 +18,6 @@ def find_tool(name):
 
 
 def main():
-    # My gut feeling is that these belong outside main? Left them there for now
-    #parser = argparse.ArgumentParser(description = 'Run in batch mode or run a single sample.')
-    #parser.add_argument('-c', '--config', metavar = '', help = 'Specify configuration file')
-
     # Send the specified config file to the config_checker program
     # Run the config_checker program and return
     configFile = config_checker.main() # yields a config object
