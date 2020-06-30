@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
+import logging
+
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
 logger = logging.getLogger()
 
-from pipeline import args
-configFile = vars(args)
+#configFile = vars(args)
 
-def main(configFile):
+def main(args):
     
     # Take the arg from the main script and set it here 
-    cfg_file = args['config']  
+    cfg_file = args.config  
 
     # Import config setting
     from configparser import ConfigParser
