@@ -57,7 +57,7 @@ args = parser.parse_args()
 prefix = args.prefix
 suffix = args.extension
 
-logger.info("Arguments passed: prefix = {}, extension = {}".format(prefix, extension))
+logger.info("Arguments passed: prefix = {}, extension = {}".format(prefix, suffix))
 
 
 if __name__ == '__main__':
