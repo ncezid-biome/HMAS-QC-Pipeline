@@ -1,27 +1,17 @@
 #!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
 
 import os, logging, argparse, re
 import pandas as pd
 import numpy as np
 
 
-# In[ ]:
-
-
 def getFiles(prefix, suffix):
     fileList = []
     for f in os.listdir():
         fname, fext = os.path.splitext(f)
-        if (f.startswith(prefix)) and (fext == suffix):
+        if (f.startswith(prefix)) and (fext == ('.' + suffix)):
             fileList.append(f)
     return(fileList)
-
-
-# In[ ]:
 
 
 def makeTable(fileList):
@@ -40,9 +30,6 @@ def makeTable(fileList):
     return(fileTable)
 
 
-# In[ ]:
-
-
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
 logger = logging.getLogger()
@@ -57,6 +44,9 @@ prefix = args.prefix
 suffix = args.extension
 
 logger.info("Arguments passed: prefix = {}, extension = {}".format(prefix, suffix))
+
+myorder = ['R1', 'R2', 'I1']
+order = {key: i for i, key in enumerate(myorder)}
 
 if __name__ == '__main__':
     fileList = getFiles(prefix, suffix)
