@@ -30,6 +30,24 @@ def makeTable(fileList):
     return(fileTable)
 
 
+def checkDf(df):
+    max_row, max_col = df.shape
+    cols = df.columns.tolist()
+    data = ['none' for i in range(max_row)]
+    if len(cols) < 4:
+        missing = list(set(['R1', 'R2', 'I1', 'I2']) - set(cols))
+        for i in missing:
+            if i == 'R1':
+                df.insert(0, 'R1', data)
+            elif i == 'R2':
+                df.insert(1, 'R2', data)
+            elif i == 'I1':
+                df.insert(2, 'I1', data)
+            elif i == 'I2':
+                df.insert(3, 'I2', data)
+    return(df)
+
+
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
 logger = logging.getLogger()
@@ -45,17 +63,19 @@ suffix = args.extension
 
 logger.info("Arguments passed: prefix = {}, extension = {}".format(prefix, suffix))
 
-myorder = ['R1', 'R2', 'I1']
-order = {key: i for i, key in enumerate(myorder)}
+filetypes = ['R1', 'R2', 'I1', 'I2']
+order = {key: i for i, key in enumerate(filetypes)}
 
 if __name__ == '__main__':
     fileList = getFiles(prefix, suffix)
     fileTable = makeTable(fileList)
-    gTable = fileTable.groupby('shortname')
-    sortedTable = gTable.apply(lambda _df: _df.sort_values(by = 'type', key = lambda x: x.map(order)))
-    finaltable = sortedtable.reset_index(drop = True).pivot(index = 'shortname', columns = 'type', values = 'filename').sort_index(axis = 1, key = lambda x: x.map(order))
+    finalTable = fileTable.reset_index(drop = True) \
+       			  .pivot(index = 'shortname', columns = 'type', values = 'filename') \
+       			  .sort_index(axis = 1, key = lambda x: x.map(order))
+    outputTable = checkDf(finalTable)
 
-data = finaltable.values
+
+data = outputTable.values
 outfile = prefix + '.paired.files'
 np.savetxt(outfile, data, delimiter = '\t', fmt = '%s')
 
