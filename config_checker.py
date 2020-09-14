@@ -23,6 +23,7 @@ def main(args):
     # Check that each section is present
     mothur_sections = ['file_inputs', 'contigs_params', 'rename_param', 'screen_params', 'pcr_params', 'rare_seqs_param']
 
+    # This script should also check for presence of oligos file and the batch file
     # This doesn't work how I expect it to...
     if set(mothur_sections) != set(config.sections()):
         for section in mothur_section:
@@ -30,6 +31,22 @@ def main(args):
                 config.has_section(section)
             except config.Error:
                 logger.error('This section of your config file is missing: {}'.format(section))
-       
+    
+    # Example for checking for presence of files - move it from here though  
+    def checkFile(filename):
+        """
+        Params
+        ------
+        
+        Returns
+        ------
+    
+        """
+    try:
+        f = open(filename)
+        f.close()
+    except FileNotFoundError:
+        print('File not found, did you remember to create it?')
+    
     # Export config object back to main script
     return config
