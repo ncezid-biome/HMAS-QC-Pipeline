@@ -21,12 +21,8 @@ def find_tool(name):
     True/False: Boolean
         True if `name` is on path and executable, False otherwise   
     """
-    not_found = shutil.which(name) is None
-    if not_found == True:
-        logger.info('{0} not found on path. Is it installed?'.format(name))
-    else:
-        logger.info('{0} is on path and is executable.'.format(name))
-    return shutil.which(name) is not None
+    found = shutil.which(name) is not None
+    return(found)
 
 
 def main():
@@ -39,14 +35,17 @@ def main():
 
     logger.info('The config file to be parsed is: {0}'.format(args.config))
 
-    if find_tool('mothur') == False:
+    if find_tool('mothur') == True:
+        logger.info('{0} is on path and is executable.'.format(name))
+    else:
+        logger.error('{0} not found on path. Is it installed?'.format(name))
         sys.exit(1)
 
     try:
         from mothur_py import Mothur
     except:
-        logger.info('Unable to import mothur_py module. Is it installed and on PATH?')
-        logger.info('Program exited because mothur_py could not be imported.')  
+        logger.error('Unable to import mothur_py module. Is it installed and on PATH?')
+        logger.error('Program exited because mothur_py could not be imported.')  
         sys.exit(1)
     
     mpy_batch.main(config)

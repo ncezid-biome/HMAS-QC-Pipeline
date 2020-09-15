@@ -2,8 +2,6 @@
 import os
 from mothur_py import Mothur
 
-
-
 def main(config):
 
     currentDir = os.getcwd()

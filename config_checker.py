@@ -6,21 +6,34 @@ LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
 logger = logging.getLogger()
 
-#configFile = vars(args)
+def checkFile(filename):
+    """
+    Params
+    ------
+
+    Returns
+    ------
+
+    """
+    try:
+        f = open(filename)
+        f.close()
+    except FileNotFoundError:
+        print('File not found, did you remember to create it?')
+
+
 
 def main(args):
     
     # Take the arg from the main script and set it here 
     cfg_file = args.config  
 
-    # Import config setting
     from configparser import ConfigParser
 
     config = ConfigParser()
     config.read(cfg_file)
     logger.info('Config file passed: {}'.format(cfg_file))
 
-    # Check that each section is present
     mothur_sections = ['file_inputs', 'contigs_params', 'rename_param', 'screen_params', 'pcr_params', 'rare_seqs_param']
 
     # This script should also check for presence of oligos file and the batch file
@@ -31,22 +44,6 @@ def main(args):
                 config.has_section(section)
             except config.Error:
                 logger.error('This section of your config file is missing: {}'.format(section))
-    
-    # Example for checking for presence of files - move it from here though  
-    def checkFile(filename):
-        """
-        Params
-        ------
-        
-        Returns
-        ------
-    
-        """
-    try:
-        f = open(filename)
-        f.close()
-    except FileNotFoundError:
-        print('File not found, did you remember to create it?')
     
     # Export config object back to main script
     return config

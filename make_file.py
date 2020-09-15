@@ -4,6 +4,10 @@ import os, logging, argparse, re
 import pandas as pd
 import numpy as np
 
+LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
+logger = logging.getLogger()
+
 
 def getFiles(prefix, suffix):
     fileList = []
@@ -61,7 +65,9 @@ args = parser.parse_args()
 prefix = args.prefix
 suffix = args.extension
 
-logger.info("Arguments passed: prefix = {}, extension = {}".format(prefix, suffix))
+logger.info("Arguments passed: prefix = {0}, extension = {1}".format(prefix, suffix))
+logger.info('Retrieving files that start with {0} and end with {1}'.format(prefix, suffix)
+
 
 filetypes = ['R1', 'R2', 'I1', 'I2']
 order = {key: i for i, key in enumerate(filetypes)}
@@ -74,8 +80,11 @@ if __name__ == '__main__':
        			  .sort_index(axis = 1, key = lambda x: x.map(order))
     outputTable = checkDf(finalTable)
 
-
 data = outputTable.values
+logger.info('Added these files to HMAS QC batch file: {0}'.format(data))
 outfile = prefix + '.paired.files'
+logger.info('Saving output to: {0}'.format(outfile))
 np.savetxt(outfile, data, delimiter = '\t', fmt = '%s')
+
+logger.info('Completed. Please make sure {0} is correct before continuing.'.format(outfile)) 
 
