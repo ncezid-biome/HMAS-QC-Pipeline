@@ -1,29 +1,13 @@
 #!/usr/bin/env python
 
-import logging
+import logging, os, sys
 
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
+logging.basicConfig(filename = 'config_checker.log', format = LOG_FORMAT, level = logging.DEBUG)
 logger = logging.getLogger()
 
-def checkFile(filename):
-    """
-    Params
-    ------
 
-    Returns
-    ------
-
-    """
-    try:
-        f = open(filename)
-        f.close()
-    except FileNotFoundError:
-        print('File not found, did you remember to create it?')
-
-
-
-def main(args):
+def main(args.config):
     
     # Take the arg from the main script and set it here 
     cfg_file = args.config  
@@ -36,14 +20,29 @@ def main(args):
 
     mothur_sections = ['file_inputs', 'contigs_params', 'rename_param', 'screen_params', 'pcr_params', 'rare_seqs_param']
 
-    # This script should also check for presence of oligos file and the batch file
     # This doesn't work how I expect it to...
-    if set(mothur_sections) != set(config.sections()):
-        for section in mothur_section:
+    if set(mothur_sections) == set(config.sections()):
+        logger.info("All required sections in the config file were found.")
+    else:
+        for section in mothur_sections:
             try:
                 config.has_section(section)
+                logger.info('Section found: {}'.format(section))
             except config.Error:
-                logger.error('This section of your config file is missing: {}'.format(section))
-    
+                logger.error('Section not found: {}'.format(section))
+   
+    if os.access(config['file_inputs']['oligos'], os.R_OK) == True:
+        logger.info('{} exists and is readable'.format(config['file_inputs']['oligos']))
+    else:
+        logger.error('{} does not exist or is not readable'.format(config['file_inputs']['oligos']))  
+        sys.exit(1)
+
+    if os.access(config['file_inputs']['batch_file'], os.R_OK) == True:
+        logger.info('{} exists and is readable'.format(config['file_inputs']['batch_file']))
+    else:    
+        logger.error('{} does not exist or is not readable'.format(config['file_inputs']['batch_file']))
+        sys.exit(1)
+
+    logger.info("Config file checking completed.")
     # Export config object back to main script
     return config

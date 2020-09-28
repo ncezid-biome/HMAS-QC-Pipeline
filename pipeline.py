@@ -31,14 +31,15 @@ def main():
     parser.add_argument('-c', '--config', metavar = '', help = 'Specify configuration file')
     args = parser.parse_args()    
 
-    config = config_checker.main(args.config) 
+    cfg_file = args.config
+    config = config_checker.main(cfg_file) 
 
     logger.info('The config file to be parsed is: {0}'.format(args.config))
 
     if find_tool('mothur') == True:
-        logger.info('{0} is on path and is executable.'.format(name))
+        logger.info('mothur is on path and is executable.')
     else:
-        logger.error('{0} not found on path. Is it installed?'.format(name))
+        logger.error('mothur not found on path. Is it installed?')
         sys.exit(1)
 
     try:
