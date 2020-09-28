@@ -7,11 +7,8 @@ logging.basicConfig(filename = 'config_checker.log', format = LOG_FORMAT, level 
 logger = logging.getLogger()
 
 
-def main(args.config):
+def main(cfg_file):
     
-    # Take the arg from the main script and set it here 
-    cfg_file = args.config  
-
     from configparser import ConfigParser
 
     config = ConfigParser()
