@@ -22,10 +22,10 @@ def main(cfg_file):
         logger.info("All required sections in the config file were found.")
     else:
         for section in mothur_sections:
-            try:
-                config.has_section(section)
+            pair = (section, config.has_section(section))
+            if pair[1] == True:
                 logger.info('Section found: {}'.format(section))
-            except config.Error:
+            else:
                 logger.error('Section not found: {}'.format(section))
    
     if os.access(config['file_inputs']['oligos'], os.R_OK) == True:
