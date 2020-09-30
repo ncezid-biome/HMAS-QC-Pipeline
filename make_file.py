@@ -58,7 +58,7 @@ logger = logging.getLogger()
 
 parser = argparse.ArgumentParser(description = 'Make a list of the files to run in batch mode')
 parser.add_argument('-p', '--prefix', metavar='', required=True, help = 'A prefix that identifies the files you want to run')
-parser.add_argument('-x', '--extension', metavar='', required=True, help = 'An extension that your files have, e.g. .gz')
+parser.add_argument('-x', '--extension', metavar='', required=True, help = 'An extension that your files have, e.g. .gz (NOT .gz)')
 
 args = parser.parse_args()
 
