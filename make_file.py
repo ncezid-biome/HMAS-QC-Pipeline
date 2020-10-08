@@ -4,15 +4,9 @@ import os, logging, argparse, re
 import pandas as pd
 import numpy as np
 
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
-logger = logging.getLogger()
-
-
-def getFiles(prefix, suffix):
+def getFiles(directory, prefix, suffix):
     fileList = []
-    current_path = os.getcwd() 
-    for f in os.listdir(current_path):
+    for f in os.listdir(directory):
         fname, fext = os.path.splitext(f)
         if (f.startswith(prefix)) and (fext == ('.' + suffix)):
             fileList.append(f)
@@ -53,18 +47,21 @@ def checkDf(df):
     return(df)
 
 
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
-logger = logging.getLogger()
-
 parser = argparse.ArgumentParser(description = 'Make a list of the files to run in batch mode')
+parser.add_argument('-d', '--directory', metavar='', required=True, help = 'Specify the path to your files')
 parser.add_argument('-p', '--prefix', metavar='', required=True, help = 'A prefix that identifies the files you want to run')
 parser.add_argument('-x', '--extension', metavar='', required=True, help = 'An extension that your files have, e.g. .gz (NOT .gz)')
 
 args = parser.parse_args()
 
+directory = args.directory
 prefix = args.prefix
 suffix = args.extension
+
+LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig(filename = directory + 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
+logger = logging.getLogger()
+
 
 logger.info("Arguments passed: prefix = {0}, extension = {1}".format(prefix, suffix))
 logger.info('Retrieving files that start with {0} and end with {1}'.format(prefix, suffix))
@@ -74,16 +71,17 @@ filetypes = ['R1', 'R2', 'I1', 'I2']
 order = {key: i for i, key in enumerate(filetypes)}
 
 if __name__ == '__main__':
-    fileList = getFiles(prefix, suffix)
+    fileList = getFiles(directory, prefix, suffix)
     fileTable = makeTable(fileList)
     finalTable = fileTable.reset_index(drop = True) \
        			  .pivot(index = 'shortname', columns = 'type', values = 'filename') \
        			  .sort_index(axis = 1, key = lambda x: x.map(order))
+
     outputTable = checkDf(finalTable)
 
 data = outputTable.values
 logger.info('Added these files to HMAS QC batch file: {0}'.format(data))
-outfile = prefix + '.paired.files'
+outfile = directory + prefix + '.paired.files'
 logger.info('Saving output to: {0}'.format(outfile))
 np.savetxt(outfile, data, delimiter = '\t', fmt = '%s')
 
