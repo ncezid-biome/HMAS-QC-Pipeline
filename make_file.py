@@ -66,7 +66,7 @@ prefix = args.prefix
 suffix = args.extension
 
 logger.info("Arguments passed: prefix = {0}, extension = {1}".format(prefix, suffix))
-logger.info('Retrieving files that start with {0} and end with {1}'.format(prefix, suffix)
+logger.info('Retrieving files that start with {0} and end with {1}'.format(prefix, suffix))
 
 
 filetypes = ['R1', 'R2', 'I1', 'I2']
