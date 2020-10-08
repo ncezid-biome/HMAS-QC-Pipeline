@@ -11,7 +11,8 @@ logger = logging.getLogger()
 
 def getFiles(prefix, suffix):
     fileList = []
-    for f in os.listdir():
+    current_path = os.getcwd() 
+    for f in os.listdir(current_path):
         fname, fext = os.path.splitext(f)
         if (f.startswith(prefix)) and (fext == ('.' + suffix)):
             fileList.append(f)
