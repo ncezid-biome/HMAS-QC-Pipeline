@@ -6,7 +6,7 @@ import numpy as np
 
 def getFiles(directory, prefix, suffix):
     fileList = []
-    for f in os.listdir(directory):
+    for f in os.listdir(os.path.abspath(directory)):
         fname, fext = os.path.splitext(f)
         if (f.startswith(prefix)) and (fext == ('.' + suffix)):
             fileList.append(f)
@@ -54,24 +54,20 @@ parser.add_argument('-x', '--extension', metavar='', required=True, help = 'An e
 
 args = parser.parse_args()
 
-directory = args.directory
-prefix = args.prefix
-suffix = args.extension
-
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = directory + 'make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
+logging.basicConfig(filename = os.path.abspath(args.directory) + '/make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
 logger = logging.getLogger()
 
 
-logger.info("Arguments passed: prefix = {0}, extension = {1}".format(prefix, suffix))
-logger.info('Retrieving files that start with {0} and end with {1}'.format(prefix, suffix))
+logger.info("Arguments passed: prefix = {0}, extension = {1}".format(args.prefix, args.extension))
+logger.info('Retrieving files that start with {0} and end with {1}'.format(args.prefix, args.extension))
 
 
 filetypes = ['R1', 'R2', 'I1', 'I2']
 order = {key: i for i, key in enumerate(filetypes)}
 
 if __name__ == '__main__':
-    fileList = getFiles(directory, prefix, suffix)
+    fileList = getFiles(args.directory, args.prefix, args.extension)
     fileTable = makeTable(fileList)
     finalTable = fileTable.reset_index(drop = True) \
        			  .pivot(index = 'shortname', columns = 'type', values = 'filename') \
@@ -79,11 +75,11 @@ if __name__ == '__main__':
 
     outputTable = checkDf(finalTable)
 
-data = outputTable.values
-logger.info('Added these files to HMAS QC batch file: {0}'.format(data))
-outfile = directory + prefix + '.paired.files'
-logger.info('Saving output to: {0}'.format(outfile))
-np.savetxt(outfile, data, delimiter = '\t', fmt = '%s')
+    data = outputTable.values
+    logger.info('Added these files to HMAS QC batch file: {0}'.format(data))
+    outfile = os.path.abspath(args.directory) + '/' + args.prefix + '.paired.files'
+    logger.info('Saving output to: {0}'.format(outfile))
+    np.savetxt(outfile, data, delimiter = '\t', fmt = '%s')
 
-logger.info('Completed. Please make sure {0} is correct before continuing.'.format(outfile)) 
+    logger.info('Completed. Please make sure {0} is correct before continuing.'.format(outfile)) 
 
