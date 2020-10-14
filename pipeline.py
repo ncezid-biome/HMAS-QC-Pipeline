@@ -3,11 +3,6 @@
 import logging, sys, os, argparse, shutil
 import mpy_batch, config_checker
 
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = 'hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
-logger = logging.getLogger()
-
-
 def find_tool(name):
     """Checks PATH for existence of an executable
     
@@ -28,11 +23,15 @@ def find_tool(name):
 def main():
     
     parser = argparse.ArgumentParser(description = 'Run Mothur QC pipeline on HMAS data.')
-    parser.add_argument('-c', '--config', metavar = '', help = 'Specify configuration file')
+    parser.add_argument('-c', '--config', metavar = '', required = True, help = 'Specify configuration file')
     args = parser.parse_args()    
 
     cfg_file = args.config
     config = config_checker.main(cfg_file) 
+
+    LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
+    logging.basicConfig(filename = config['file_inputs']['output_dir'] '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
+    logger = logging.getLogger()
 
     logger.info('The config file to be parsed is: {0}'.format(args.config))
 
