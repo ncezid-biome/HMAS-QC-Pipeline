@@ -7,12 +7,12 @@ def main(cfg_file):
 
     config = ConfigParser()
     config.read(cfg_file)
-    logger.info('Config file passed: {}'.format(cfg_file))
 
     LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
     logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/config_checker.log', format = LOG_FORMAT, level = logging.DEBUG)
     logger = logging.getLogger()
 
+    logger.info('Config file passed: {}'.format(cfg_file))
     mothur_sections = ['file_inputs', 'contigs_params', 'rename_param', 'screen_params', 'pcr_params', 'rare_seqs_param']
     checklist = []
 
