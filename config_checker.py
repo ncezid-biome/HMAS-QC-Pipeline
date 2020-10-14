@@ -1,19 +1,17 @@
 #!/usr/bin/env python
 
-import logging, os, sys
-
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = 'config_checker.log', format = LOG_FORMAT, level = logging.DEBUG)
-logger = logging.getLogger()
-
-
 def main(cfg_file):
     
+    import logging, os, sys
     from configparser import ConfigParser
 
     config = ConfigParser()
     config.read(cfg_file)
     logger.info('Config file passed: {}'.format(cfg_file))
+
+    LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
+    logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/config_checker.log', format = LOG_FORMAT, level = logging.DEBUG)
+    logger = logging.getLogger()
 
     mothur_sections = ['file_inputs', 'contigs_params', 'rename_param', 'screen_params', 'pcr_params', 'rare_seqs_param']
     checklist = []
@@ -50,3 +48,7 @@ def main(cfg_file):
         sys.exit(1)
     
     return config
+
+if __name__ == "__main__":
+    print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
+
