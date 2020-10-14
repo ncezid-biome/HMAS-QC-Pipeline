@@ -30,7 +30,7 @@ def main():
     config = config_checker.main(cfg_file) 
 
     LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-    logging.basicConfig(filename = config['file_inputs']['output_dir'] '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
+    logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
     logger = logging.getLogger()
 
     logger.info('The config file to be parsed is: {0}'.format(args.config))
