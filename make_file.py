@@ -46,27 +46,25 @@ def checkDf(df):
                 df.insert(3, 'I2', data)
     return(df)
 
-
-parser = argparse.ArgumentParser(description = 'Make a list of the files to run in batch mode')
-parser.add_argument('-d', '--directory', metavar='', required=True, help = 'Specify the path to your files')
-parser.add_argument('-p', '--prefix', metavar='', required=True, help = 'A prefix that identifies the files you want to run')
-parser.add_argument('-x', '--extension', metavar='', required=True, help = 'An extension that your files have, e.g. .gz (NOT .gz)')
-
-args = parser.parse_args()
-
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(filename = os.path.abspath(args.directory) + '/make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
-logger = logging.getLogger()
-
-
-logger.info("Arguments passed: prefix = {0}, extension = {1}".format(args.prefix, args.extension))
-logger.info('Retrieving files that start with {0} and end with {1}'.format(args.prefix, args.extension))
-
-
-filetypes = ['R1', 'R2', 'I1', 'I2']
-order = {key: i for i, key in enumerate(filetypes)}
-
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description = 'Make a list of the files to run in batch mode')
+    parser.add_argument('-d', '--directory', metavar='', required=True, help = 'Specify the path to your files')
+    parser.add_argument('-p', '--prefix', metavar='', required=True, help = 'A prefix that identifies the files you want to run')
+    parser.add_argument('-x', '--extension', metavar='', required=True, help = 'An extension that your files have, e.g. .gz (NOT .gz)')
+
+    args = parser.parse_args()
+
+    LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
+    logging.basicConfig(filename = os.path.abspath(args.directory) + '/make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
+    logger = logging.getLogger()
+
+    logger.info("Arguments passed: prefix = {0}, extension = {1}".format(args.prefix, args.extension))
+    logger.info('Retrieving files that start with {0} and end with {1}'.format(args.prefix, args.extension))
+
+    filetypes = ['R1', 'R2', 'I1', 'I2']
+    order = {key: i for i, key in enumerate(filetypes)}
+
     fileList = getFiles(args.directory, args.prefix, args.extension)
     fileTable = makeTable(fileList)
     finalTable = fileTable.reset_index(drop = True) \
