@@ -6,8 +6,9 @@ def main(config):
 
     currentDir = os.getcwd()
     m = Mothur()
-    m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir))
-    m.set.dir(output = config.get('file_inputs', 'output_dir', fallback = currentDir)) 
+    m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir),
+              output = config.get('file_inputs', 'output_dir', fallback = currentDir),
+              tempdefault = config.get('file_inputs','output_dir', fallback = currentDir))
     m.set.logfile(name = config.get('file_inputs', 'output_dir', fallback = currentDir))
     m.make.contigs(file = config.get('file_inputs','batch_file'),
                     processors= config.getint('contigs_params', 'processors', fallback = 40), 
