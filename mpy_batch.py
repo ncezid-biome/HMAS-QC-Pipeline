@@ -8,7 +8,7 @@ def main(config):
     m = Mothur()
     m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir))
     m.set.dir(output = config.get('file_inputs', 'output_dir', fallback = currentDir)) 
-    m.make.contigs(file = 'current',
+    m.make.contigs(file = config.get('file_inputs','batch_file'),
                     processors= config.getint('contigs_params', 'processors', fallback = 40), 
                     format=config.get('contigs_params', 'format', fallback = 'illumina1.8+'), 
                     oligos=config.get('file_inputs', 'oligos'), 
