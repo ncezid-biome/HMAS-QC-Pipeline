@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 import os
+from datetime import datetime
 from mothur_py import Mothur
 
 def main(config):
 
     currentDir = os.getcwd()
-    m = Mothur()
+    now = datetime.now()
+    runDateTime = now.strftime("%Y%m%d%H%M%S")
+    m = Mothur(logfile_name = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/mothur.'+runDateTime+'.logfile')
     m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir),
               output = config.get('file_inputs', 'output_dir', fallback = currentDir),
               tempdefault = config.get('file_inputs','output_dir', fallback = currentDir))
-    m.set.logfile(name = config.get('file_inputs', 'output_dir', fallback = currentDir))
     m.make.contigs(file = config.get('file_inputs','batch_file'),
                     processors= config.getint('contigs_params', 'processors', fallback = 40), 
                     format=config.get('contigs_params', 'format', fallback = 'illumina1.8+'), 
