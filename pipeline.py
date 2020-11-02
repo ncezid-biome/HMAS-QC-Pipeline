@@ -29,6 +29,8 @@ def main():
     cfg_file = args.config
     config = config_checker.main(cfg_file) 
 
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
     LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
     logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
     logger = logging.getLogger()
