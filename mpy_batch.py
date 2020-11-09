@@ -61,4 +61,4 @@ def main(config):
     m.list.seqs(count='current')
     m.get.seqs(fasta='current', accnos='current')
     m.make.shared(list='current', count='current')
-    m.get.otulist(list=config.get('rename_param', 'prefix')+'.good.unique.pcr.unique.0.pick.list', label=0)
+    m.get.otulist(list=config.get('rename_param', 'prefix')+'.good.pcr.unique.0.pick.list', label=0)
