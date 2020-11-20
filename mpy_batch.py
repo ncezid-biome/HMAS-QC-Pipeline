@@ -40,7 +40,7 @@ def main(config):
                 oligos='current', 
                 pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0), 
                 rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0), 
-                group='current', name='current', count='current')
+                group='current', name='current')
     m.summary.seqs(name='current')
 
     m.unique.seqs(fasta='current', name='current')
