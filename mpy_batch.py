@@ -34,24 +34,24 @@ def main(config):
 
     m.unique.seqs(fasta='current')
     m.count.seqs(name='current', group='current')
-    m.summary.seqs()
+    m.summary.seqs(name='current')
 
     m.pcr.seqs(fasta='current', 
                 oligos='current', 
                 pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0), 
                 rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0), 
-                count='current')
-    m.summary.seqs()
+                group='current', name='current', count='current')
+    m.summary.seqs(name='current')
 
-    m.unique.seqs(fasta='current')
-    m.summary.seqs()
+    m.unique.seqs(fasta='current', name='current')
+    m.summary.seqs(name='current')
 
     m.cluster(count='current', method='unique', cutoff='unique')
 
-    m.remove.rare(list='current', count='current', 
+    m.remove.rare(list='current', count='current', name='current', groupe='current',
                     nseqs=config.getint('rare_seqs_param', 'nseqs', fallback = 9), 
                     label='unique')
-    m.summary.seqs()
+    m.summary.seqs(name='current')
 
     # Search for chimeras
     # Remove chimeras
