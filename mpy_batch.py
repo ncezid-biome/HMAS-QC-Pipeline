@@ -43,12 +43,13 @@ def main(config):
                 group='current', name='current')
     m.summary.seqs(name='current')
 
+    # create new count table here
     m.unique.seqs(fasta='current', name='current')
     m.summary.seqs(name='current')
 
     m.cluster(count='current', method='unique', cutoff='unique')
 
-    m.remove.rare(list='current', count='current', name='current', groupe='current',
+    m.remove.rare(list='current', count='current',
                     nseqs=config.getint('rare_seqs_param', 'nseqs', fallback = 9), 
                     label='unique')
     m.summary.seqs(name='current')
@@ -61,4 +62,4 @@ def main(config):
     m.list.seqs(count='current')
     m.get.seqs(fasta='current', accnos='current')
     m.make.shared(list='current', count='current')
-    m.get.otulist(list=config.get('rename_param', 'prefix')+'.good.pcr.unique.0.pick.list', label=0)
+    m.get.otulist(list=config.get('rename_param', 'prefix')+'.good.unique.0.pick.list', label=0)
