@@ -1,9 +1,8 @@
 #!/usr/bin/env python
+import logging, os, sys
+from configparser import ConfigParser
 
 def main(cfg_file):
-    
-    import logging, os, sys
-    from configparser import ConfigParser
 
     config = ConfigParser()
     config.read(cfg_file)
@@ -27,19 +26,29 @@ def main(cfg_file):
             else:
                 logger.error('Section not found: {}'.format(section))
    
-    if os.access(config['file_inputs']['oligos'], os.R_OK) == True:
-        logger.info('{} exists and is readable'.format(config['file_inputs']['oligos']))
-        checklist.append(True)
-    else:
-        logger.error('{} does not exist or is not readable'.format(config['file_inputs']['oligos']))  
-        checklist.append(False)
+    # if os.access(config['file_inputs']['oligos'], os.R_OK) == True:
+    #     logger.info('{} exists and is readable'.format(config['file_inputs']['oligos']))
+    #     checklist.append(True)
+    # else:
+    #     logger.error('{} does not exist or is not readable'.format(config['file_inputs']['oligos']))
+    #     checklist.append(False)
+    #
+    # if os.access(config['file_inputs']['batch_file'], os.R_OK) == True:
+    #     logger.info('{} exists and is readable'.format(config['file_inputs']['batch_file']))
+    #     checklist.append(True)
+    # else:
+    #     logger.error('{} does not exist or is not readable'.format(config['file_inputs']['batch_file']))
+    #     checklist.append(False)
 
-    if os.access(config['file_inputs']['batch_file'], os.R_OK) == True:
-        logger.info('{} exists and is readable'.format(config['file_inputs']['batch_file']))
-        checklist.append(True)
-    else:    
-        logger.error('{} does not exist or is not readable'.format(config['file_inputs']['batch_file']))
-        checklist.append(False)
+    #check if these files/directories are in 'file_inputs' section and if they exist and are readable
+    existList = ['batch_file','oligos','input_dir', 'output_dir']
+    for name in existList:
+        if dirFileExists(config,name):
+            logger.info(f"{config.get('file_inputs',name)} exists and is readable")
+            checklist.append(True)
+        else:
+            logger.error(f"{name} in config file does not exist or is not readable")
+            checklist.append(False)
 
     if sum(checklist) == len(checklist):
         logger.info("Config file checking completed.")
@@ -48,6 +57,17 @@ def main(cfg_file):
         sys.exit(1)
     
     return config
+
+def dirFileExists(config,path_name):
+    """
+    Test if the path_name is in 'file_inputs' section and if it exists/readable
+    """
+    try:
+        #path = config.get('file_inputs',path_name)
+        path = config['file_inputs'][path_name]
+        return os.access(path, os.R_OK)
+    except (KeyError): #path_name is not in 'file_inputs' section
+        return False
 
 if __name__ == "__main__":
     print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
