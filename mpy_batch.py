@@ -22,45 +22,43 @@ def main(config):
                     insert=config.getint('contigs_params', 'insert', fallback = 25), 
                     trimoverlap=config.get('contigs_params', 'trimoverlap', fallback = 'f'),
                     allfiles=config.get('contigs_params','allfiles', fallback = 't'))
-    m.summary.seqs()
+    m.summary.seqs(fasta='current', name='current')
 
     m.rename.file(fasta='current', group='current', 
                     prefix=config.get('rename_param', 'prefix'))
-    m.summary.seqs()
 
     m.screen.seqs(fasta='current', group='current',
                     maxambig=config.getint('screen_params', 'maxambig', fallback = 0),
                     maxlength=config.getint('screen_params', 'maxlength', fallback = 325))
-    m.summary.seqs()
+    m.summary.seqs(fasta='current', name='current')
 
     m.unique.seqs(fasta='current')
     m.count.seqs(name='current', group='current')
-    m.summary.seqs(name='current')
+    m.summary.seqs(fasta='current', name='current')
 
     m.pcr.seqs(fasta='current', 
                 oligos='current', 
                 pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0), 
                 rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0), 
                 group='current', name='current')
-    m.summary.seqs(name='current')
+    m.summary.seqs(fata='current', name='current')
 
     # create new count table here
     m.unique.seqs(fasta='current', name='current')
-    m.summary.seqs(name='current')
+    m.summary.seqs(fasta='current', name='current')
 
     m.cluster(count='current', method='unique', cutoff='unique')
 
     m.remove.rare(list='current', count='current',
                     nseqs=config.getint('rare_seqs_param', 'nseqs', fallback = 9), 
-                    label='unique')
-    m.summary.seqs(name='current')
+                   fasta='current', label='unique')
+    m.summary.seqs(fasta='current', name='current')
 
     # Search for chimeras
     # Remove chimeras
 
-    m.summary.seqs()
-
     m.list.seqs(count='current')
-    m.get.seqs(fasta='current', accnos='current')
-    m.make.shared(list='current', count='current')
-    m.get.otulist(list=config.get('rename_param', 'prefix')+'.good.unique.0.pick.list', label=0)
+    m.get.seqs(fasta='current', accnos='current', name='current', group='current')
+
+if __name__ == "__main__":
+    print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
