@@ -8,8 +8,15 @@ def main(cfg_file):
     config.read(cfg_file)
 
     LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-    logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/config_checker.log', format = LOG_FORMAT, level = logging.DEBUG)
-    logger = logging.getLogger()
+    if (dirFileExists(config,'file_inputs','output_dir')):
+        logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/config_checker_log.log', format = LOG_FORMAT, level = logging.DEBUG)
+        logger = logging.getLogger()
+    else:
+        logging.basicConfig(filename = os.getcwd() + '/config_checker_log.log', format=LOG_FORMAT,level = logging.DEBUG)
+        logger = logging.getLogger()
+        logger.error("option 'output_dir' not found or 'output_dir does not exist")
+        sys.exit(1)
+
 
     logger.info('Config file passed: {}'.format(cfg_file))
     mothur_sections = ['file_inputs', 'contigs_params', 'rename_param', 'screen_params', 'pcr_params', 'rare_seqs_param']
@@ -43,12 +50,33 @@ def main(cfg_file):
     #check if these files/directories are in 'file_inputs' section and if they exist and are readable
     existList = ['batch_file','oligos','input_dir', 'output_dir']
     for name in existList:
-        if dirFileExists(config,name):
+        if dirFileExists(config,'file_inputs',name):
             logger.info(f"{config.get('file_inputs',name)} exists and is readable")
             checklist.append(True)
         else:
             logger.error(f"{name} in config file does not exist or is not readable")
             checklist.append(False)
+
+
+    param_dict = {'contigs_params':['processors', 'bdiffs', 'pdiffs', 'insert'],
+                  'screen_params':['maxambig', 'maxlength'],
+                  'pcr_params':['pdiffs', 'rdiffs'],
+                  'rare_seqs_param':['nseqs']}
+    for key in param_dict:
+        for val in param_dict[key]:
+            if hasIntVal(config,key,val):
+                checklist.append(True)
+            else:
+                logger.error(f'{val} is not an integer')
+                checklist.append(False)
+
+
+    if (config.has_option('rename_param','prefix')):
+        checklist.append(True)
+    else:
+        checklist.append(False)
+        logger.error('prefix not found in rename_param')
+
 
     if sum(checklist) == len(checklist):
         logger.info("Config file checking completed.")
@@ -58,16 +86,28 @@ def main(cfg_file):
     
     return config
 
-def dirFileExists(config,path_name):
+def dirFileExists(config,section_name,option_name):
     """
-    Test if the path_name is in 'file_inputs' section and if it exists/readable
+    Test if the option_name is in 'section_name' section and if it exists/readable
     """
     try:
-        #path = config.get('file_inputs',path_name)
-        path = config['file_inputs'][path_name]
+        #path = config.get(section_name,option_name)
+        path = config[section_name][option_name]
         return os.access(path, os.R_OK)
     except (KeyError): #path_name is not in 'file_inputs' section
         return False
+
+def hasIntVal(config,section_name,option_name):
+    """ check the passed-in options exist in the section and must have int values.
+    if the option does not exist, we still return true, b/c there is a fallback value for them in mpy_batch.py
+    """
+    if config.has_option(section_name,option_name):
+        try:
+            config.getint(section_name,option_name)
+        except (ValueError):
+            return False
+    return True
+
 
 if __name__ == "__main__":
     print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
