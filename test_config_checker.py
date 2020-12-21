@@ -11,6 +11,7 @@ class TestConfig_checker(unittest.TestCase):
 
         self.config = ConfigParser()
         self.config.read(cfg_file)
+        self.cfg_file = cfg_file
 
         return
 
@@ -19,8 +20,13 @@ class TestConfig_checker(unittest.TestCase):
         """Test all sections have all required options.
            but I notice config.get() methods in mpy_batch.py used fallback values, except 'prefix' in rename_param
            section.
+           All the logic are embedded in main()
         """
-        pass
+
+        # **** make sure the options in 'file_inputs' section exist and are readable,o/w
+        #it will throw exception
+        cc.main(self.cfg_file)
+        return
 
     def test_hasIntVal(self):
         """Test those options that must have int values.
@@ -40,7 +46,10 @@ class TestConfig_checker(unittest.TestCase):
         return
 
     def test_hasAllSections(self):
-        pass
+        # **** make sure the options in 'file_inputs' section exist and are readable,o/w
+        # it will throw exception
+        cc.main(self.cfg_file)
+        return
 
     def test_dirFileExists(self):
         """
@@ -48,8 +57,8 @@ class TestConfig_checker(unittest.TestCase):
         They're: input_dir, output_dir, batch_file, oligos in [file_inputs]
         'init' file is assumed in the current directory.
         """
-        #self.assertTrue(cc.dirFileExists(self.config,'file_inputs','input_dir'))
-        self.assertFalse(cc.dirFileExists(self.config,'file_inputs','input_dir'))
+        self.assertTrue(cc.dirFileExists(self.config,'file_inputs','input_dir'))
+        #self.assertFalse(cc.dirFileExists(self.config,'file_inputs','input_dir'))
         self.assertFalse(cc.dirFileExists(self.config,'file_inputs','no_such_dir'))
 
         return
