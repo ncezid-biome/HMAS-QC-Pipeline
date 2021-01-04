@@ -21,7 +21,7 @@ def main(config):
                     checkorient=config.get('contigs_params', 'checkorient', fallback = 't'), 
                     insert=config.getint('contigs_params', 'insert', fallback = 25), 
                     trimoverlap=config.get('contigs_params', 'trimoverlap', fallback = 'f'),
-                    allfiles=config.get('contigs_params','allfiles', fallback = 't'))
+                    allfiles=config.get('contigs_params','allfiles', fallback = 0))
     m.summary.seqs(fasta='current', name='current')
 
     m.rename.file(fasta='current', group='current', 
