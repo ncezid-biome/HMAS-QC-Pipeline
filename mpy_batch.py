@@ -41,7 +41,7 @@ def main(config):
                 pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0), 
                 rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0), 
                 group='current', name='current')
-    m.summary.seqs(fata='current', name='current')
+    m.summary.seqs(fasta='current', name='current')
 
     # create new count table here
     m.unique.seqs(fasta='current', name='current')
@@ -51,7 +51,7 @@ def main(config):
 
     m.remove.rare(list='current', count='current',
                     nseqs=config.getint('rare_seqs_param', 'nseqs', fallback = 9), 
-                   fasta='current', label='unique')
+                   label='unique')
     m.summary.seqs(fasta='current', name='current')
 
     # Search for chimeras
