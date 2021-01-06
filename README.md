@@ -64,8 +64,9 @@ This pipeline has been designed and tested under Linux CentOS and Ubuntu platfor
 `mothur --help`
 
 4. Run the following (replace `mysettings.ini` with the path to your settings file you configured in step 1):  
-`python3 pipeline.py - c mysettings.ini`
+`python3 pipeline.py - c mysettings.ini`  
 
+Note: it is recommended that you run a quality check on your read sets (e.g. with a program like FastQC) before running them through the pipeline.  Knowing the quality of your read sets may help you troubleshoot any problematic results from the pipeline.
 
 ## Contributing
 
