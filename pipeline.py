@@ -74,7 +74,7 @@ def lookUpErrorCode(error_code):
         return ("There is either no error (code =0), or error_code = None")
 
 def main():
-    
+
     parser = argparse.ArgumentParser(description = 'Run Mothur QC pipeline on HMAS data.')
     parser.add_argument('-c', '--config', metavar = '', required = True, help = 'Specify configuration file')
     args = parser.parse_args()    
@@ -112,8 +112,11 @@ def main():
         mpy_batch.main(config)
         logger.info('mothur_py executed on files listed in {}'.format(args.config))
     except RuntimeError as e:
+        print(f'{e}')
+        print('please also check mothur logfile for details')
         logger.error(e)
         logger.error(f'the return error code might indicate: {lookUpErrorCode(getErrorCode(str(e)))}')
+        logger.error('please also check mothur logfile for error details')
 
 if __name__ == "__main__":
     main()
