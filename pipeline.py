@@ -115,14 +115,12 @@ def main():
                 if any(x in line for x in ["I1", "I2"]) == False:
                     logger.error('You must specify at least one index file (preferably both I1 and I2). Check your batch file.')
                     error = 1
-                if any("-" in f for f in line.split()) == False:
+                if any("-" in f for f in line.split()) == True:
                     logger.error('Please remove all hyphens from your file names. Consider changing them to underscores.')
                     error = 1
     except OSError as e:
         print(f'{e}')
-        print(os.strerror(e.errno))
         logger.error(e)
-        logger.error(os.strerror(e.errno))
 
     finally:
         f.close()
