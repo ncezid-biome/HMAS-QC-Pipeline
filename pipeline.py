@@ -107,7 +107,7 @@ def main():
     # Check input files
     error = 0 
     try:
-    	with open(config['file_inputs']['input_dir'] + config['file_inputs']['batch_file']) as f:
+    	with open(config['file_inputs']['batch_file']) as f:
             for line in f.readlines():
                 if all(x in line for x in ["R1", "R2"]) == False:
                     logger.error('You must specify both an R1 and R2 file. Check check all rows of your batch file.')
