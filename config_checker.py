@@ -31,7 +31,7 @@ def main(cfg_file):
 
     LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
     if (dirFileExists(config,'file_inputs','output_dir')):
-        logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/config_checker_log.log', format = LOG_FORMAT, level = logging.DEBUG)
+        logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/config_checker.log', format = LOG_FORMAT, level = logging.DEBUG)
         logger = logging.getLogger()
     else:
         logging.basicConfig(filename = os.getcwd() + '/config_checker_log.log', format=LOG_FORMAT,level = logging.DEBUG)
