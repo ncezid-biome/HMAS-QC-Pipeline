@@ -103,14 +103,31 @@ def main():
         logger.error('Program exited because mothur_py could not be imported.')  
         sys.exit(1)
     
-    # mpy_batch.main(config)
-    # logger.info('mothur_py executed on files listed in {}'.format(args.config))
 
-    # catch the potential RuntimeError thrown by mothur.py
-    # and log the error code
+    # Check input files
+    try:
+    	with open(config['file_inputs']['input_dir'] + config['file_inputs']['batch_file']) as f:
+        for line in f.readlines():
+            if all(x in line for x in ["R1", "R2"]) == False:
+	        logger.error('You must specify both an R1 and R2 file. Check check all rows of your batch file.')
+		sys.exit(1)
+            if any(x in line for x in ["I1", "I2"]) == False:
+		logger.error('You must specify at least one index file (preferably both I1 and I2). Check your batch file.')
+		sys.exit(1)
+	    if any("-" in f for f in line.split()) == False:
+		logger.error('Please remove all hyphens from your file names. Consider changing them to underscores.')
+		sys.exit(1)
+	    else:
+		logger.info('Both read files and at least one index file found for all inputs in batch file.')i
+		logger.info('None of the files contain evil hyphens.')
+    finally:
+        f.close()
+
+
+    # Catch potential RuntimeError thrown by mothur-pyand log the error code
     try:
         mpy_batch.main(config)
-        logger.info('mothur_py executed on files listed in {}'.format(args.config))
+        logger.info(f'mothur_py executed on files listed in {args.config}')
     except RuntimeError as e:
         print(f'{e}')
         print('please also check mothur logfile for details')
