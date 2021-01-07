@@ -125,7 +125,7 @@ def main():
         logger.error('We have encountered errors in your batch file.  Please correct them and run the pipeline again.')
         sys.exit(1)
     else:
-        logger.info('Both read files and at least one index file found for all inputs in batch file.')i
+        logger.info('Both read files and at least one index file found for all inputs in batch file.')
         logger.info('None of the files contain evil hyphens.')
 
     # Catch potential RuntimeError thrown by mothur-pyand log the error code
