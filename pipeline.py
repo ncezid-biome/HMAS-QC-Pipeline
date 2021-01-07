@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import logging, sys, os, argparse, shutil
+import logging, sys, os, argparse, shutil, errno
 import mpy_batch, config_checker
 import re
 
@@ -118,6 +118,12 @@ def main():
                 if any("-" in f for f in line.split()) == False:
                     logger.error('Please remove all hyphens from your file names. Consider changing them to underscores.')
                     error = 1
+    except OSError as e:
+        print(f'{e}')
+        print(os.strerror(e.errno))
+        logger.error(e)
+        logger.error(os.strerror(e.errno))
+
     finally:
         f.close()
 
@@ -134,10 +140,10 @@ def main():
         logger.info(f'mothur_py executed on files listed in {args.config}')
     except RuntimeError as e:
         print(f'{e}')
-        print('please also check mothur logfile for details')
+        print('Please also check mothur logfile for details')
         logger.error(e)
-        logger.error(f'the return error code might indicate: {lookUpErrorCode(getErrorCode(str(e)))}')
-        logger.error('please also check mothur logfile for error details')
+        logger.error(f'The return error code might indicate: {lookUpErrorCode(getErrorCode(str(e)))}')
+        logger.error('Please also check mothur log file for error details')
 
 if __name__ == "__main__":
     main()
