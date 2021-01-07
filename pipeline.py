@@ -118,7 +118,7 @@ def main():
                     logger.error('Please remove all hyphens from your file names. Consider changing them to underscores.')
                     sys.exit(1)
                 else:
-                    logger.info('Both read files and at least one index file found for all inputs in batch file.')i
+                    logger.info('Both read files and at least one index file found for all inputs in batch file.')
                     logger.info('None of the files contain evil hyphens.')
     finally:
         f.close()
