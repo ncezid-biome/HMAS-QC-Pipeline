@@ -9,6 +9,7 @@ def main(config):
     now = datetime.now()
     runDateTime = now.strftime("%Y%m%d%H%M%S")
     m = Mothur(logfile_name = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/mothur.'+runDateTime+'.logfile')
+    
     m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir),
               output = config.get('file_inputs', 'output_dir', fallback = currentDir),
               tempdefault = config.get('file_inputs','output_dir', fallback = currentDir))
@@ -43,7 +44,7 @@ def main(config):
                 group='current', name='current')
     m.summary.seqs(fasta='current', name='current')
 
-    # create new count table here
+    m.count.seqs(name='current', group='current')
     m.unique.seqs(fasta='current', name='current')
     m.summary.seqs(fasta='current', name='current')
 
