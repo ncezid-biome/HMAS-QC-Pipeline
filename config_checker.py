@@ -33,21 +33,7 @@ def main(cfg_file):
             else:
                 logger.error('Section not found: {}'.format(section))
    
-    # if os.access(config['file_inputs']['oligos'], os.R_OK) == True:
-    #     logger.info('{} exists and is readable'.format(config['file_inputs']['oligos']))
-    #     checklist.append(True)
-    # else:
-    #     logger.error('{} does not exist or is not readable'.format(config['file_inputs']['oligos']))
-    #     checklist.append(False)
-    #
-    # if os.access(config['file_inputs']['batch_file'], os.R_OK) == True:
-    #     logger.info('{} exists and is readable'.format(config['file_inputs']['batch_file']))
-    #     checklist.append(True)
-    # else:
-    #     logger.error('{} does not exist or is not readable'.format(config['file_inputs']['batch_file']))
-    #     checklist.append(False)
-
-    #check if these files/directories are in 'file_inputs' section and if they exist and are readable
+    # Check if these files/directories are in 'file_inputs' section and if they exist and are readable
     existList = ['batch_file','oligos','input_dir', 'output_dir']
     for name in existList:
         if dirFileExists(config,'file_inputs',name):
@@ -57,7 +43,7 @@ def main(cfg_file):
             logger.error(f"{name} in config file does not exist or is not readable")
             checklist.append(False)
 
-    #check required integer value for specific options
+    # Check required integer value for specific options
     param_dict = {'contigs_params':['processors', 'bdiffs', 'pdiffs', 'insert'],
                   'screen_params':['maxambig', 'maxlength'],
                   'pcr_params':['pdiffs', 'rdiffs'],
@@ -70,7 +56,7 @@ def main(cfg_file):
                 logger.error(f'{val} is not an integer')
                 checklist.append(False)
 
-    #check if option 'prefix' exists
+    # Check if option 'prefix' exists
     if (config.has_option('rename_param','prefix')):
         checklist.append(True)
     else:
