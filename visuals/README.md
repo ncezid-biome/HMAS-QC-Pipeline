@@ -3,6 +3,9 @@
 This directory contains flowcharts I created in the course of working on the HMAS QC Pipeline.
 They were all created using LucidChart.
 
+Note: Changes have been made to the pipeline as of December 2020. Some of these visuals are no longer accurate.  
+I am unable to modify them because I only have access to the free version of LucidChart.
+
 ## Description of contents 
 
 `HMAS_Pipeline_Swimlane_Flowchart.pdf`

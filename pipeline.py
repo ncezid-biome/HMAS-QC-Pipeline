@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import logging, sys, os, argparse, shutil
+import logging, sys, os, argparse, shutil, errno
 import mpy_batch, config_checker
 import re
 
@@ -103,20 +103,45 @@ def main():
         logger.error('Program exited because mothur_py could not be imported.')  
         sys.exit(1)
     
-    # mpy_batch.main(config)
-    # logger.info('mothur_py executed on files listed in {}'.format(args.config))
 
-    # catch the potential RuntimeError thrown by mothur.py
-    # and log the error code
+    # Check input files
+    error = 0 
+    try:
+    	with open(config['file_inputs']['batch_file']) as f:
+            for line in f.readlines():
+                if all(x in line for x in ["R1", "R2"]) == False:
+                    logger.error('You must specify both an R1 and R2 file. Check check all rows of your batch file.')
+                    error = 1
+                if any(x in line for x in ["I1", "I2"]) == False:
+                    logger.error('You must specify at least one index file (preferably both I1 and I2). Check your batch file.')
+                    error = 1
+                if any("-" in f for f in line.split()) == True:
+                    logger.error('Please remove all hyphens from your file names. Consider changing them to underscores.')
+                    error = 1
+    except OSError as e:
+        print(f'{e}')
+        logger.error(e)
+
+    finally:
+        f.close()
+
+    if error == 1:
+        logger.error('We have encountered errors in your batch file.  Please correct them and run the pipeline again.')
+        sys.exit(1)
+    else:
+        logger.info('Both read files and at least one index file found for all inputs in batch file.')
+        logger.info('None of the files contain evil hyphens.')
+
+    # Catch potential RuntimeError thrown by mothur-pyand log the error code
     try:
         mpy_batch.main(config)
-        logger.info('mothur_py executed on files listed in {}'.format(args.config))
+        logger.info(f'mothur_py executed on files listed in {args.config}')
     except RuntimeError as e:
         print(f'{e}')
-        print('please also check mothur logfile for details')
+        print('Please also check mothur logfile for details')
         logger.error(e)
-        logger.error(f'the return error code might indicate: {lookUpErrorCode(getErrorCode(str(e)))}')
-        logger.error('please also check mothur logfile for error details')
+        logger.error(f'The return error code might indicate: {lookUpErrorCode(getErrorCode(str(e)))}')
+        logger.error('Please also check mothur log file for error details')
 
 if __name__ == "__main__":
     main()
