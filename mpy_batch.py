@@ -44,8 +44,8 @@ def main(config):
                 group='current', name='current')
     m.summary.seqs(fasta='current', name='current')
 
-    m.count.seqs(name='current', group='current')
     m.unique.seqs(fasta='current', name='current')
+    m.count.seqs(name='current', group='current')
     m.summary.seqs(fasta='current', name='current')
 
     m.cluster(count='current', method='unique', cutoff='unique')
