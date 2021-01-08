@@ -27,6 +27,15 @@ def main(config):
     m.rename.file(fasta='current', group='current', 
                     prefix=config.get('rename_param', 'prefix'))
 
+    #check good.fasta file size > scrap.fasta file size
+    fasta_file = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/'+ \
+                 config.get('rename_param', 'prefix')+'.fasta'
+    good_fasta_file = fasta_file[:-5]+'good.fasta'
+    if (os.path.getsize(fasta_file) > 2 * os.path.getsize(good_fasta_file)):
+        raise RuntimeError(f"return_code=None   Alert!"
+                           f" We have scrap fasta file size larger than good fasta {good_fasta_file}!")
+
+
     m.screen.seqs(fasta='current', group='current',
                     maxambig=config.getint('screen_params', 'maxambig', fallback = 0),
                     maxlength=config.getint('screen_params', 'maxlength', fallback = 325))
