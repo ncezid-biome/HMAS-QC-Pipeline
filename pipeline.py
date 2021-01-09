@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import logging, sys, os, argparse, shutil, errno
-import mpy_batch, config_checker
+import config_checker
 import re
 
 def find_tool(name):
@@ -88,18 +88,21 @@ def main():
     logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
     logger = logging.getLogger()
 
-    logger.info('The config file to be parsed is: {0}'.format(args.config))
+    logger.info(f'The config file to be parsed is: {args.config}')
 
     if find_tool('mothur') == True:
         logger.info('mothur is on path and is executable.')
     else:
         logger.error('mothur not found on path. Is it installed?')
+        logger.error('Program exited because Mothur could not be found.')
         sys.exit(1)
 
     try:
         from mothur_py import Mothur
-    except:
-        logger.error('Unable to import mothur_py module. Is it installed and on PATH?')
+        logger.info('mothur-py module is installed.')
+    except ModuleNotFoundError as e:
+        print(f'{e}')
+        logger.error('Unable to import mothur-py module. Is it installed and on PATH?')
         logger.error('Program exited because mothur_py could not be imported.')  
         sys.exit(1)
     
@@ -134,8 +137,16 @@ def main():
 
     # Catch potential RuntimeError thrown by mothur-pyand log the error code
     try:
+        import mpy_batch
+    except ModuleNotFoundError as e:
+        print(f'{e}')
+        logger.error(e)
+        logger.error('Pgoram exited because mpy_batch module could not be imported.')
+        sys.exit(1)
+
+    try:
         mpy_batch.main(config)
-        logger.info(f'mothur_py executed on files listed in {args.config}')
+        logger.info(f'mothur-py executed on files listed in {args.config}')
     except RuntimeError as e:
         print(f'{e}')
         print('Please also check mothur logfile for details')
