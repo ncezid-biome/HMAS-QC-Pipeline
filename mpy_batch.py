@@ -3,13 +3,18 @@ import os
 from datetime import datetime
 from mothur_py import Mothur
 
+SUPPRESS_LOG_FLAG = False
+
 def main(config):
 
     currentDir = os.getcwd()
     now = datetime.now()
     runDateTime = now.strftime("%Y%m%d%H%M%S")
     m = Mothur(logfile_name = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/mothur.'+runDateTime+'.logfile')
-    
+    if (SUPPRESS_LOG_FLAG):
+        m.verbosity = 1
+        m.suppress_logfile = True
+
     m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir),
               output = config.get('file_inputs', 'output_dir', fallback = currentDir),
               tempdefault = config.get('file_inputs','output_dir', fallback = currentDir))
@@ -25,7 +30,7 @@ def main(config):
                     allfiles=config.get('contigs_params','allfiles', fallback = 0))
     m.summary.seqs(fasta='current', name='current')
 
-    m.rename.file(fasta='current', group='current', 
+    m.rename.file(fasta='current', group='current',
                     prefix=config.get('rename_param', 'prefix'))
 
     #check good.fasta file size > scrap.fasta file size
@@ -33,8 +38,10 @@ def main(config):
                  config.get('rename_param', 'prefix')+'.fasta'
     good_fasta_file = fasta_file[:-5]+'good.fasta'
     if (os.path.getsize(fasta_file) > 2 * os.path.getsize(good_fasta_file)):
-        raise RuntimeError(f"return_code=None   Alert!"
-                           f" We have scrap fasta file size larger than good fasta {good_fasta_file}!")
+        raise RuntimeError(f"************************************************************\n"
+                           f"return_code=None   Alert! ERROR\n"
+                           f"We have scrap fasta file size larger than good fasta {good_fasta_file}!\n"
+                           f"************************************************************")
 
 
     m.screen.seqs(fasta='current', group='current',
@@ -46,10 +53,10 @@ def main(config):
     m.count.seqs(name='current', group='current')
     m.summary.seqs(fasta='current', name='current')
 
-    m.pcr.seqs(fasta='current', 
-                oligos='current', 
-                pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0), 
-                rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0), 
+    m.pcr.seqs(fasta='current',
+                oligos='current',
+                pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0),
+                rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0),
                 group='current', name='current')
     m.summary.seqs(fasta='current', name='current')
 
@@ -60,7 +67,7 @@ def main(config):
     m.cluster(count='current', method='unique', cutoff='unique')
 
     m.remove.rare(list='current', count='current',
-                    nseqs=config.getint('rare_seqs_param', 'nseqs', fallback = 9), 
+                    nseqs=config.getint('rare_seqs_param', 'nseqs', fallback = 9),
                    label='unique')
     m.summary.seqs(fasta='current', name='current')
 
