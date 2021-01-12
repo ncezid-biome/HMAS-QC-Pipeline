@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import logging, sys, os, argparse, shutil, errno
-import mpy_batch, config_checker
+import config_checker
 import re
 
 def find_tool(name):
@@ -79,7 +79,7 @@ def main():
     parser.add_argument('-c', '--config', metavar = '', required = True, help = 'Specify configuration file')
     parser.add_argument('-l', '--log', metavar='', required=False, help='Suppress mothur log, '
                         'pipe stdout to the file you provided')
-    args = parser.parse_args()    
+    args = parser.parse_args()
 
     cfg_file = args.config
     config = config_checker.main(cfg_file) 
@@ -90,18 +90,21 @@ def main():
     logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
     logger = logging.getLogger()
 
-    logger.info('The config file to be parsed is: {0}'.format(args.config))
+    logger.info(f'The config file to be parsed is: {args.config}')
 
     if find_tool('mothur') == True:
         logger.info('mothur is on path and is executable.')
     else:
         logger.error('mothur not found on path. Is it installed?')
+        logger.error('Program exited because Mothur could not be found.')
         sys.exit(1)
 
     try:
         from mothur_py import Mothur
-    except:
-        logger.error('Unable to import mothur_py module. Is it installed and on PATH?')
+        logger.info('mothur-py module is installed.')
+    except ModuleNotFoundError as e:
+        print(f'{e}')
+        logger.error('Unable to import mothur-py module. Is it installed and on PATH?')
         logger.error('Program exited because mothur_py could not be imported.')  
         sys.exit(1)
     
@@ -114,9 +117,9 @@ def main():
                 if all(x in line for x in ["R1", "R2"]) == False:
                     logger.error('You must specify both an R1 and R2 file. Check check all rows of your batch file.')
                     error = 1
-                # if any(x in line for x in ["I1", "I2"]) == False:
-                #     logger.error('You must specify at least one index file (preferably both I1 and I2). Check your batch file.')
-                #     error = 1
+                if any(x in line for x in ["I1", "I2"]) == False:
+                    logger.error('You must specify at least one index file (preferably both I1 and I2). Check your batch file.')
+                    error = 1
                 if any("-" in f for f in line.split()) == True:
                     logger.error('Please remove all hyphens from your file names. Consider changing them to underscores.')
                     error = 1
@@ -135,12 +138,21 @@ def main():
         logger.info('None of the files contain evil hyphens.')
 
     # Catch potential RuntimeError thrown by mothur-py and log the error code
+    # Catch potential RuntimeError thrown by mothur-pyand log the error code
+    try:
+        import mpy_batch
+    except ModuleNotFoundError as e:
+        print(f'{e}')
+        logger.error(e)
+        logger.error('Pgoram exited because mpy_batch module could not be imported.')
+        sys.exit(1)
+
     try:
         if (args.log is not None):
             mpy_batch.SUPPRESS_LOG_FLAG = True
             sys.stdout = open(args.log, 'w')
         mpy_batch.main(config)
-        logger.info(f'mothur_py executed on files listed in {args.config}')
+        logger.info(f'mothur-py executed on files listed in {args.config}')
     except RuntimeError as e:
         print(f'{e}')
         print('Please also check mothur logfile for details')

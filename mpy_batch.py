@@ -76,6 +76,7 @@ def main(config):
 
     m.list.seqs(count='current')
     m.get.seqs(fasta='current', accnos='current', name='current', group='current')
+    m.rename.file(fasta='current', group='current', name='current', prefix=config.get('rename_param', 'prefix') +'.final')
 
 if __name__ == "__main__":
     print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
