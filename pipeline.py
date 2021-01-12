@@ -77,7 +77,9 @@ def main():
 
     parser = argparse.ArgumentParser(description = 'Run Mothur QC pipeline on HMAS data.')
     parser.add_argument('-c', '--config', metavar = '', required = True, help = 'Specify configuration file')
-    args = parser.parse_args()    
+    parser.add_argument('-l', '--log', metavar='', required=False, help='Suppress mothur log, '
+                        'pipe stdout to the file you provided')
+    args = parser.parse_args()
 
     cfg_file = args.config
     config = config_checker.main(cfg_file) 
@@ -135,6 +137,7 @@ def main():
         logger.info('Both read files and at least one index file found for all inputs in batch file.')
         logger.info('None of the files contain evil hyphens.')
 
+    # Catch potential RuntimeError thrown by mothur-py and log the error code
     # Catch potential RuntimeError thrown by mothur-pyand log the error code
     try:
         import mpy_batch
@@ -145,6 +148,9 @@ def main():
         sys.exit(1)
 
     try:
+        if (args.log is not None):
+            mpy_batch.SUPPRESS_LOG_FLAG = True
+            sys.stdout = open(args.log, 'w')
         mpy_batch.main(config)
         logger.info(f'mothur-py executed on files listed in {args.config}')
     except RuntimeError as e:
@@ -153,6 +159,9 @@ def main():
         logger.error(e)
         logger.error(f'The return error code might indicate: {lookUpErrorCode(getErrorCode(str(e)))}')
         logger.error('Please also check mothur log file for error details')
+    finally:
+        if (args.log is not None):
+            sys.stdout.close()
 
 if __name__ == "__main__":
     main()
