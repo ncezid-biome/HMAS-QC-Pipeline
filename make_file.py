@@ -59,13 +59,21 @@ if __name__ == '__main__':
     logging.basicConfig(filename = os.path.abspath(args.directory) + '/make_file.log', format = LOG_FORMAT, level = logging.DEBUG)
     logger = logging.getLogger()
 
-    logger.info("Arguments passed: prefix = {0}, extension = {1}".format(args.prefix, args.extension))
-    logger.info('Retrieving files that start with {0} and end with {1}'.format(args.prefix, args.extension))
+    logger.info(f"Arguments passed: prefix = {args.prefix}, extension = {args.extension}")
+    logger.info(f"Retrieving files that start with {args.prefix} and end with {args.extension}")
+
+    if args.directory == '.':
+        directory = os.getcwd()
+    else:
+        directory = args.directory
+
+    assert os.path.exists(directory), f"Directory not found at {directory}"
+    logger.error(f"Could not find the directory you specified: {directory}. Does it exist?")
 
     filetypes = ['R1', 'R2', 'I1', 'I2']
     order = {key: i for i, key in enumerate(filetypes)}
 
-    fileList = getFiles(args.directory, args.prefix, args.extension)
+    fileList = getFiles(directory, args.prefix, args.extension)
     fileTable = makeTable(fileList)
     finalTable = fileTable.reset_index(drop = True) \
        			  .pivot(index = 'shortname', columns = 'type', values = 'filename') \
@@ -74,10 +82,10 @@ if __name__ == '__main__':
     outputTable = checkDf(finalTable)
 
     data = outputTable.values
-    logger.info('Added these files to HMAS QC batch file: {0}'.format(data))
+    logger.info(f"Added these files to HMAS QC batch file: {data}")
     outfile = os.path.abspath(args.directory) + '/' + args.prefix + '.paired.files'
-    logger.info('Saving output to: {0}'.format(outfile))
+    logger.info(f"Saving output to: {outfile}")
     np.savetxt(outfile, data, delimiter = '\t', fmt = '%s')
 
-    logger.info('Completed. Please make sure {0} is correct before continuing.'.format(outfile)) 
+    logger.info(f"Completed. Please make sure {outfile} is correct before continuing.") 
 
