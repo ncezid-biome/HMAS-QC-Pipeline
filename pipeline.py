@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import logging, sys, os, argparse, shutil, errno
-import config_checker
+import config_checker, log_parser
 import re
 
 def find_tool(name):
@@ -138,7 +138,6 @@ def main():
         logger.info('None of the files contain evil hyphens.')
 
     # Catch potential RuntimeError thrown by mothur-py and log the error code
-    # Catch potential RuntimeError thrown by mothur-pyand log the error code
     try:
         import mpy_batch
     except ModuleNotFoundError as e:
@@ -150,18 +149,25 @@ def main():
     try:
         if (args.log is not None):
             mpy_batch.SUPPRESS_LOG_FLAG = True
-            sys.stdout = open(args.log, 'w')
+            sys.stdout = open(args.log, 'w')  #pipe stdout to user's own file
         mpy_batch.main(config)
         logger.info(f'mothur-py executed on files listed in {args.config}')
     except RuntimeError as e:
         print(f'{e}')
-        print('Please also check mothur logfile for details')
         logger.error(e)
         logger.error(f'The return error code might indicate: {lookUpErrorCode(getErrorCode(str(e)))}')
-        logger.error('Please also check mothur log file for error details')
+        if (not getErrorCode(str(e))): #error_code = 0 or None; MOTHUR_ERROR_FLAG is True in this case
+            print('Please check mothur logfile for details')
+            logger.error('Please check mothur log file for details')
     finally:
         if (args.log is not None):
             sys.stdout.close()
+        # parse the MOTHUR log file to remove the redundancy
+        if (os.access(mpy_batch.MOTHUR_LOG_FILE, os.R_OK)):
+            log_parser.parse(mpy_batch.MOTHUR_LOG_FILE)
+        else:
+            logger.error(f'mothur log file: {mpy_batch.MOTHUR_LOG_FILE} does not exist !')
+
 
 if __name__ == "__main__":
     main()
