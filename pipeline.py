@@ -77,8 +77,6 @@ def main():
 
     parser = argparse.ArgumentParser(description = 'Run Mothur QC pipeline on HMAS data.')
     parser.add_argument('-c', '--config', metavar = '', required = True, help = 'Specify configuration file')
-    parser.add_argument('-l', '--log', metavar='', required=False, help='Suppress mothur log, '
-                        'pipe stdout to the file you provided')
     args = parser.parse_args()
 
     cfg_file = args.config
@@ -105,12 +103,12 @@ def main():
     except ModuleNotFoundError as e:
         print(f'{e}')
         logger.error('Unable to import mothur-py module. Is it installed and on PATH?')
-        logger.error('Program exited because mothur_py could not be imported.')  
+        logger.error('Program exited because mothur_py could not be imported.')
         sys.exit(1)
-    
+
 
     # Check input files
-    error = 0 
+    error = 0
     try:
     	with open(config['file_inputs']['batch_file']) as f:
             for line in f.readlines():
@@ -137,21 +135,16 @@ def main():
         logger.info('Both read files and at least one index file found for all inputs in batch file.')
         logger.info('None of the files contain evil hyphens.')
 
-    # Catch potential RuntimeError thrown by mothur-py and log the error code
+
     try:
         import mpy_batch
+        mpy_batch.main(config)
+        logger.info(f'mothur-py executed on files listed in {args.config}')
     except ModuleNotFoundError as e:
         print(f'{e}')
         logger.error(e)
         logger.error('Pgoram exited because mpy_batch module could not be imported.')
         sys.exit(1)
-
-    try:
-        if (args.log is not None):
-            mpy_batch.SUPPRESS_LOG_FLAG = True
-            sys.stdout = open(args.log, 'w')  #pipe stdout to user's own file
-        mpy_batch.main(config)
-        logger.info(f'mothur-py executed on files listed in {args.config}')
     except RuntimeError as e:
         print(f'{e}')
         logger.error(e)
@@ -160,9 +153,7 @@ def main():
             print('Please check mothur logfile for details')
             logger.error('Please check mothur log file for details')
     finally:
-        if (args.log is not None):
-            sys.stdout.close()
-        # parse the MOTHUR log file to remove the redundancy
+        # parce MOTHUR LOG file to remove the redundancy
         if (os.access(mpy_batch.MOTHUR_LOG_FILE, os.R_OK)):
             log_parser.parse(mpy_batch.MOTHUR_LOG_FILE)
         else:
