@@ -66,7 +66,13 @@ This pipeline has been designed and tested under Linux CentOS and Ubuntu platfor
 4. Run the following (replace `mysettings.ini` with the path to your settings file you configured in step 1):  
 `python3 pipeline.py - c mysettings.ini`  
 
-Note: it is recommended that you run a quality check on your read sets (e.g. with a program like FastQC) before running them through the pipeline.  Knowing the quality of your read sets may help you troubleshoot any problematic results from the pipeline.
+## Note
+
+1. It is recommended that you run a quality check on your read sets (e.g. with a program like FastQC) before running them through the pipeline.  Knowing the quality of your read sets may help you troubleshoot any problematic results from the pipeline.
+
+2. We must have both R1(forward) and R2(reverse) reads, and at least I1 index file. If we don't have I2 index file, we
+must have keyword NONE or none in the place of missing I2 index file. In such case, we also must have keyword NONE/none
+in the corresponding column (for the missing I2 index file) of the oligos file
 
 ## Contributing
 
