@@ -4,7 +4,6 @@ from datetime import datetime
 from mothur_py import Mothur
 import re
 
-SUPPRESS_LOG_FLAG = False
 MOTHUR_LOG_FILE = ''
 
 def check_filesize():
@@ -17,8 +16,15 @@ def check_filesize():
     if (os.access(MOTHUR_LOG_FILE, os.R_OK)):
         with open(MOTHUR_LOG_FILE, 'r') as f:
             log_file = f.read()
-        good_fasta_file = re.search(r'.+trim\.contigs\.fasta', log_file).group(0)
-        scrap_fasta_file = re.search(r'.+scrap\.contigs\.fasta',log_file).group(0)
+        try:
+            good_fasta_file = re.search(r'.+trim\.contigs\.fasta', log_file).group(0)
+            scrap_fasta_file = re.search(r'.+scrap\.contigs\.fasta',log_file).group(0)
+        except AttributeError: #in case MOTHUR log file doesn't have trim/scrap fasta file
+            raise RuntimeError(f"************************************************************\n"
+                               f"return_code=None   Alert! ERROR\n"
+                               f"can't find either trim or scrap fasta file in MOTHUR log\n"
+                               f"************************************************************")
+
         if (os.path.getsize(scrap_fasta_file) > os.path.getsize(good_fasta_file)):
             raise RuntimeError(f"************************************************************\n"
                                f"return_code=None   Alert! ERROR\n"
@@ -36,9 +42,6 @@ def main(config):
     runDateTime = now.strftime("%Y%m%d%H%M%S")
     MOTHUR_LOG_FILE = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/mothur.'+runDateTime+'.logfile'
     m = Mothur(logfile_name = MOTHUR_LOG_FILE)
-    if (SUPPRESS_LOG_FLAG):
-        m.verbosity = 1
-        m.suppress_logfile = True
 
     m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir),
               output = config.get('file_inputs', 'output_dir', fallback = currentDir),
