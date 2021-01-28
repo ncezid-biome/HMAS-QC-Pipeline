@@ -64,6 +64,7 @@ def main(cfg_file):
         else:
             logger.error(f"*** {name} in config file does not exist or is not readable")
             checklist.append(False)
+            sys.exit(1)
 
     # Check required integer value for specific options
     param_dict = {'contigs_params':['processors', 'bdiffs', 'pdiffs', 'insert'],
@@ -85,8 +86,24 @@ def main(cfg_file):
         checklist.append(False)
         logger.error("*** prefix not found in rename_param")
 
+    # enforce proper batch file format
+    # it must have R1, R2 reads and at least I1 index file
+    # in case of missing I2 index file, must have NONE or none in place
+    missing_i2_flag = False
+    with open(config['file_inputs']['batch_file']) as f:
+        for line in f.readlines():
+            if not all(x in line for x in ["R1", "R2", "I1"]):
+                logger.error(f"*** You must specify both an R1,R2 and at least I1 file. Check all rows of your batch file")
+                checklist.append(False)
+            if any(x in line for x in ['none', 'NONE']):
+                missing_i2_flag = True
+                logger.info(f"batch file has 'NONE' in place of missing I2 index file")
+            if not any(x in line for x in ['I2', 'NONE', 'none']):
+                logger.error(f"*** batch file has error. If we don't have I2 index file, "
+                             f"we must have keyword 'NONE' in place.")
+                checklist.append(False)
 
-    # check for '-' and ',' in oligo file
+    # check for evil characters: '-' and ',' in oligo file
     # MOTHUR will not accept special characters like '-' or ','
     with open(config['file_inputs']['oligos']) as f:
         for line in f.readlines():
@@ -97,24 +114,11 @@ def main(cfg_file):
                 checklist.append(False)
                 break
 
-    # enforce proper batch file format
-    # in case of missing I2 index file, must have NONE or none in place
-    missing_i2_flag = False
-    with open(config['file_inputs']['batch_file']) as f:
-        for line in f.readlines():
-            if any(x in line for x in ['none', 'NONE']):
-                missing_i2_flag = True
-                logger.info(f"batch file has 'NONE' in place of missing I2 index file")
-            if any(x in line for x in ['I2', 'NONE', 'none']) == False:
-                logger.error(f"*** batch file has error. If we don't have I2 index file, "
-                             f"we must have keyword 'NONE' in place.")
-                checklist.append(False)
-
     # enforce proper oligo file format
     # in case of missing I2 index, use keyword NONE in the place of all I2 index
     if (missing_i2_flag):
         with open(config['file_inputs']['oligos']) as f:
-            if all('NONE' in line for line in f.readlines() if 'barcode' in line):
+            if all('NONE' in line.upper() for line in f.readlines() if 'barcode' in line):
                 logger.info(f"oligo file also has NONE in place of all missing I2 index")
             else:
                 logger.error(f"*** oligo file has error, must have keyword 'NONE' in place of all missing I2 index")
