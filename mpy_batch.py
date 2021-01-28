@@ -94,7 +94,11 @@ def main(config):
     m.summary.seqs(fasta='current', name='current')
 
     # Search for chimeras
+    # need to use proper path for vsearch
+    m.chimera.vsearch(fasta='current', name='current', group='current', dereplicate='t', vsearch=r'~/bin/vsearch')
     # Remove chimeras
+    m.remove.seqs(fasta='current', accnos='current')
+
 
     m.list.seqs(count='current')
     m.get.seqs(fasta='current', accnos='current', name='current', group='current')
