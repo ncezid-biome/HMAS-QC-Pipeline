@@ -42,6 +42,23 @@ def replace_no_error(matched):
     else:
         return 'mothur >'
 
+def replace_chi(matched):
+    """
+    This helper method substitutes the matched occurrence with only the first and last 2000 characters
+
+    Parameters
+    ----------
+    A regex match object
+
+    Returns
+    -------
+    the first and last 2000 characters of the matched string
+    """
+    if len(matched.group(0)) > 4000:
+        return (f'{matched.group(0)[:2000]} \n\n\n ### we deleted some output ### \n\n\n {matched.group(0)[-2000:]}')
+    else:
+        return matched.group(0)
+
 
 def parse(file_to_parse):
     """
@@ -57,7 +74,7 @@ def parse(file_to_parse):
     None
 
     """
-    with open(file_to_parse, 'r') as f:
+    with open(file_to_parse, 'r', errors='ignore') as f:
         file = f.read()
 
     #match(non-greedy) any contents between get.current() and mothur > quit()
@@ -68,6 +85,10 @@ def parse(file_to_parse):
 
     #match any contents between mothur > set.logfile and 3 or more new lines followed by mothur >'
     pattern_3 = r'mothur > set.logfile.*?[\n]{3,}mothur >'
+
+    # match any contents between Linux version (or Windows version) and mothur > chimera.vsearch'
+    pattern_chi = r'mothur > chimera.vsearch.*?(Linux|Windows) version'
+    file = re.sub(pattern_chi, replace_chi, file, flags=re.DOTALL|re.I)
 
     file = re.sub(pattern_1, '', file, flags=re.DOTALL|re.I)
     #keep the first occurrence of Linux version etc. information
