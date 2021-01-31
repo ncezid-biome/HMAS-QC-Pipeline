@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import logging, sys, os, argparse, shutil, errno
-import config_checker, log_parser
+import config_checker, log_parser, file_remover
 import re
 
 def find_tool(name):
@@ -128,6 +128,8 @@ def main():
             log_parser.parse(mpy_batch.MOTHUR_LOG_FILE)
         else:
             logger.error(f'mothur log file: {mpy_batch.MOTHUR_LOG_FILE} does not exist !')
+        #remove those temp files created by MOTHUR's chimera.vsearch()
+        file_remover.remove_vsearch_files(config)
 
 
 if __name__ == "__main__":
