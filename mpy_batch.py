@@ -3,8 +3,10 @@ import os
 from datetime import datetime
 from mothur_py import Mothur
 import re
+import group
 
 MOTHUR_LOG_FILE = ''
+
 
 def check_filesize():
     """
@@ -14,7 +16,7 @@ def check_filesize():
 
     """
     if (os.access(MOTHUR_LOG_FILE, os.R_OK)):
-        with open(MOTHUR_LOG_FILE, 'r') as f:
+        with open(MOTHUR_LOG_FILE, 'r', errors='ignore') as f:
             log_file = f.read()
         try:
             good_fasta_file = re.search(r'.+trim\.contigs\.fasta', log_file).group(0)
@@ -86,23 +88,60 @@ def main(config):
     m.count.seqs(name='current', group='current')
     m.summary.seqs(fasta='current', name='current')
 
-    m.cluster(count='current', method='unique', cutoff='unique')
-
-    m.remove.rare(list='current', count='current',
-                    nseqs=config.getint('rare_seqs_param', 'nseqs', fallback = 9),
-                   label='unique')
-    m.summary.seqs(fasta='current', name='current')
+    m.get.current() # let MOTHUR log the most current group file
+    old_group = group.get_current_group(MOTHUR_LOG_FILE)
+    new_group = group.create_new_Group(config, old_group)
 
     # Search for chimeras
     # need to use proper path for vsearch
-    m.chimera.vsearch(fasta='current', name='current', group='current', dereplicate='t', vsearch=r'~/bin/vsearch')
-    # Remove chimeras
-    m.remove.seqs(fasta='current', accnos='current')
+    m.chimera.vsearch(fasta='current', name='current', group=new_group, dereplicate='t', vsearch=r'~/bin/vsearch')
 
+    m.set.current(group=old_group) #switch to the old group file
 
-    m.list.seqs(count='current')
-    m.get.seqs(fasta='current', accnos='current', name='current', group='current')
-    m.rename.file(fasta='current', group='current', name='current', prefix=config.get('rename_param', 'prefix') +'.final')
+    #from here on, we use try/except to avoid potential errors caused by empty chimera accnos file
+    try:
+        m.remove.seqs(fasta='current', accnos='current', group='current', name='current')
+    except RuntimeError:
+        print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
+        pass
+
+    try:
+        m.cluster(count='current', method='unique', cutoff='unique')
+    except RuntimeError:
+        print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
+        pass
+
+    try:
+        m.remove.rare(list='current', count='current',
+                      nseqs=config.getint('rare_seqs_param', 'nseqs', fallback=9),
+                      label='unique')
+    except RuntimeError:
+        print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
+        pass
+
+    try:
+        m.summary.seqs(fasta='current', name='current')
+    except RuntimeError:
+        print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
+        pass
+
+    try:
+        m.list.seqs(count='current')
+    except RuntimeError:
+        print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
+        pass
+
+    try:
+        m.get.seqs(fasta='current', accnos='current', name='current', group='current')
+    except RuntimeError:
+        print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
+        pass
+
+    try:
+        m.rename.file(fasta='current', group='current', name='current', prefix=config.get('rename_param', 'prefix') +'.final')
+    except RuntimeError:
+        print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
+        pass
 
 if __name__ == "__main__":
     print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
