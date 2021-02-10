@@ -2,18 +2,46 @@
 import os
 from datetime import datetime
 from mothur_py import Mothur
+import re
 
-SUPPRESS_LOG_FLAG = False
+MOTHUR_LOG_FILE = ''
+
+def check_filesize():
+    """
+    This utility function checks and makes sure the good fasta file size is larger than scrap fasta file size
+    , otherwise it will throw out an RuntimeError
+    It does so by parsing the MOTHUR log file, and grab those 2 fasta file names, then compare their sizes.
+
+    """
+    if (os.access(MOTHUR_LOG_FILE, os.R_OK)):
+        with open(MOTHUR_LOG_FILE, 'r') as f:
+            log_file = f.read()
+        try:
+            good_fasta_file = re.search(r'.+trim\.contigs\.fasta', log_file).group(0)
+            scrap_fasta_file = re.search(r'.+scrap\.contigs\.fasta',log_file).group(0)
+        except AttributeError: #in case MOTHUR log file doesn't have trim/scrap fasta file
+            raise RuntimeError(f"************************************************************\n"
+                               f"return_code=None   Alert! ERROR\n"
+                               f"can't find either trim or scrap fasta file in MOTHUR log\n"
+                               f"************************************************************")
+
+        if (os.path.getsize(scrap_fasta_file) > os.path.getsize(good_fasta_file)):
+            raise RuntimeError(f"************************************************************\n"
+                               f"return_code=None   Alert! ERROR\n"
+                               f"We have scrap fasta {scrap_fasta_file} file size larger than \n"
+                               f"good fasta {good_fasta_file}!\n"
+                               f"You most likely need to trim your reads first!\n"
+                               f"************************************************************")
+
 
 def main(config):
 
+    global MOTHUR_LOG_FILE
     currentDir = os.getcwd()
     now = datetime.now()
     runDateTime = now.strftime("%Y%m%d%H%M%S")
-    m = Mothur(logfile_name = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/mothur.'+runDateTime+'.logfile')
-    if (SUPPRESS_LOG_FLAG):
-        m.verbosity = 1
-        m.suppress_logfile = True
+    MOTHUR_LOG_FILE = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/mothur.'+runDateTime+'.logfile'
+    m = Mothur(logfile_name = MOTHUR_LOG_FILE)
 
     m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir),
               output = config.get('file_inputs', 'output_dir', fallback = currentDir),
@@ -28,21 +56,15 @@ def main(config):
                     insert=config.getint('contigs_params', 'insert', fallback = 25), 
                     trimoverlap=config.get('contigs_params', 'trimoverlap', fallback = 'f'),
                     allfiles=config.get('contigs_params','allfiles', fallback = 0))
+
+    # this serves as a check point and make sure that:
+    # good fasta file (trim.contigs.fasta) size > scrap fasta file size
+    check_filesize()
+
     m.summary.seqs(fasta='current', name='current')
 
     m.rename.file(fasta='current', group='current',
                     prefix=config.get('rename_param', 'prefix'))
-
-    #check good.fasta file size > scrap.fasta file size
-    fasta_file = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/'+ \
-                 config.get('rename_param', 'prefix')+'.fasta'
-    good_fasta_file = fasta_file[:-5]+'good.fasta'
-    if (os.path.getsize(fasta_file) > 2 * os.path.getsize(good_fasta_file)):
-        raise RuntimeError(f"************************************************************\n"
-                           f"return_code=None   Alert! ERROR\n"
-                           f"We have scrap fasta file size larger than good fasta {good_fasta_file}!\n"
-                           f"************************************************************")
-
 
     m.screen.seqs(fasta='current', group='current',
                     maxambig=config.getint('screen_params', 'maxambig', fallback = 0),
@@ -72,7 +94,11 @@ def main(config):
     m.summary.seqs(fasta='current', name='current')
 
     # Search for chimeras
+    # need to use proper path for vsearch
+    m.chimera.vsearch(fasta='current', name='current', group='current', dereplicate='t', vsearch=r'~/bin/vsearch')
     # Remove chimeras
+    m.remove.seqs(fasta='current', accnos='current')
+
 
     m.list.seqs(count='current')
     m.get.seqs(fasta='current', accnos='current', name='current', group='current')

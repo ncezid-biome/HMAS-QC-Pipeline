@@ -7,10 +7,9 @@ def dirFileExists(config,section_name,option_name):
     Test if the option_name is in 'section_name' section and if it exists/readable
     """
     try:
-        #path = config.get(section_name,option_name)
         path = config[section_name][option_name]
         return os.access(path, os.R_OK)
-    except (KeyError): #path_name is not in 'file_inputs' section
+    except (KeyError): #option_name is not in 'file_inputs' section
         return False
 
 def hasIntVal(config,section_name,option_name):
@@ -36,7 +35,7 @@ def main(cfg_file):
     else:
         logging.basicConfig(filename = os.getcwd() + '/config_checker_log.log', format=LOG_FORMAT,level = logging.DEBUG)
         logger = logging.getLogger()
-        logger.error("option 'output_dir' not found or 'output_dir does not exist")
+        logger.error("*** option 'output_dir' not found or 'output_dir does not exist")
         sys.exit(1)
 
 
@@ -44,6 +43,7 @@ def main(cfg_file):
     mothur_sections = ['file_inputs', 'contigs_params', 'rename_param', 'screen_params', 'pcr_params', 'rare_seqs_param']
     checklist = []
 
+    # check if config file has all required sections
     if set(mothur_sections) == set(config.sections()):
         logger.info("All required sections in the config file were found.")
     else:
@@ -53,17 +53,18 @@ def main(cfg_file):
             if pair[1] == True:
                 logger.info(f"Section found: {section}")
             else:
-                logger.error(f"Section not found: {section}")
+                logger.error(f"*** Section not found: {section}")
    
-    # Check if these files/directories are in 'file_inputs' section and if they exist and are readable
+    # Check if these required options are in 'file_inputs' section and they are readable
     existList = ['batch_file','oligos','input_dir', 'output_dir']
     for name in existList:
         if dirFileExists(config,'file_inputs',name):
             logger.info(f"{config.get('file_inputs',name)} exists and is readable")
             checklist.append(True)
         else:
-            logger.error(f"{name} in config file does not exist or is not readable")
+            logger.error(f"*** {name} in config file does not exist or is not readable")
             checklist.append(False)
+            sys.exit(1)
 
     # Check required integer value for specific options
     param_dict = {'contigs_params':['processors', 'bdiffs', 'pdiffs', 'insert'],
@@ -75,7 +76,7 @@ def main(cfg_file):
             if hasIntVal(config,key,val):
                 checklist.append(True)
             else:
-                logger.error(f"{val} is not an integer")
+                logger.error(f"*** {val} is not an integer")
                 checklist.append(False)
 
     # Check if option 'prefix' exists
@@ -83,13 +84,51 @@ def main(cfg_file):
         checklist.append(True)
     else:
         checklist.append(False)
-        logger.error("prefix not found in rename_param")
+        logger.error("*** prefix not found in rename_param")
 
+    # enforce proper batch file format
+    # it must have R1, R2 reads and at least I1 index file
+    # in case of missing I2 index file, must have NONE or none in place
+    missing_i2_flag = False
+    with open(config['file_inputs']['batch_file']) as f:
+        for line in f.readlines():
+            if not all(x in line for x in ["R1", "R2", "I1"]):
+                logger.error(f"*** You must specify both an R1,R2 and at least I1 file. Check all rows of your batch file")
+                checklist.append(False)
+            if any(x in line for x in ['none', 'NONE']):
+                missing_i2_flag = True
+                logger.info(f"batch file has 'NONE' in place of missing I2 index file")
+            if not any(x in line for x in ['I2', 'NONE', 'none']):
+                logger.error(f"*** batch file has error. If we don't have I2 index file, "
+                             f"we must have keyword 'NONE' in place.")
+                checklist.append(False)
+
+    # check for evil characters: '-' and ',' in oligo file
+    # MOTHUR will not accept special characters like '-' or ','
+    with open(config['file_inputs']['oligos']) as f:
+        for line in f.readlines():
+            if any(evil in line for evil in ["-",","]):
+                logger.error(f'*** Either hyphens or commas found in oligo file. '
+                             f'Consider changing hyphens to underscores. \n'
+                             f'*** If oligo file is comma-delimited, please update it to tab-delimited')
+                checklist.append(False)
+                break
+
+    # enforce proper oligo file format
+    # in case of missing I2 index, use keyword NONE in the place of all I2 index
+    if (missing_i2_flag):
+        with open(config['file_inputs']['oligos']) as f:
+            if all('NONE' in line.upper() for line in f.readlines() if 'barcode' in line):
+                logger.info(f"oligo file also has NONE in place of all missing I2 index")
+            else:
+                logger.error(f"*** oligo file has error, must have keyword 'NONE' in place of all missing I2 index")
+                checklist.append(False)
 
     if sum(checklist) == len(checklist):
         logger.info("Config file checking completed.")
     else:
-        logger.error("Config file has errors. Please correct the file and run the pipeline again.")
+        print(f"Found errors in config file. Please correct the file and run the pipeline again.")
+        logger.error("*** Config file has errors. Please correct those errors and run the pipeline again.")
         sys.exit(1)
     
     return config
