@@ -125,11 +125,11 @@ def main():
                 rev = line.strip().split()[2] # reverse primer seq
                 rev_seq = Seq(rev) 
                 rev_compl = str(rev_seq.reverse_complement()) # Reverse complement of rev primer
-	        fwd_seq = Seq(fwd)
-	        fwd_compl = str(fwd_seq.reverse_complement()) # Reverse complement of fwd primer
+                fwd_seq = Seq(fwd)
+                fwd_compl = str(fwd_seq.reverse_complement()) # Reverse complement of fwd primer
                 o[key] = fwd # Key is primer name, 1st value is forward primer seq
-	        append_value(o, key, fwd_compl) # 2nd value: rev compl fwd primer
-	        append_value(o, key, rev) # 3rd value: reverse primer
+                append_value(o, key, fwd_compl) # 2nd value: rev compl fwd primer
+                append_value(o, key, rev) # 3rd value: reverse primer
                 append_value(o, key, rev_compl) # 4th value: rev compl rev primer
 
     reads = pd.DataFrame([(k, *v) for k, v in d.items()])
