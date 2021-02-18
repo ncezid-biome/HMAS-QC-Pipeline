@@ -56,7 +56,7 @@ def main(config):
                     pdiffs=config.getint('contigs_params', 'pdiffs', fallback = 0), 
                     checkorient=config.get('contigs_params', 'checkorient', fallback = 't'), 
                     insert=config.getint('contigs_params', 'insert', fallback = 25), 
-                    trimoverlap=config.get('contigs_params', 'trimoverlap', fallback = 'f'),
+                    trimoverlap=config.get('contigs_params', 'trimoverlap', fallback = 't'),
                     allfiles=config.get('contigs_params','allfiles', fallback = 0))
 
     # this serves as a check point and make sure that:
