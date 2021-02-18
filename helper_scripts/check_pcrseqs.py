@@ -53,16 +53,6 @@ def append_value(dict_obj, key, value):
     else:
         dict_obj[key] = value
 
-
-def to_fwf(df, fname):
-
-    content = tabulate(df.values.tolist(), list(df.columns), tablefmt="plain")
-    open(fname, "w").write(content)
-
-
-
-
-
 def main():
 
     parser = argparse.ArgumentParser(description = 'Check the output of Mothur pcr.seqs command.')
@@ -95,9 +85,11 @@ def main():
         # If line is a READ ID, make that the key. If not, make the next line the key.
         if line.startswith('>M00347'):
             key = line.rstrip().split()[0][1:]
+            key = key.split('|')[0]
             seq = linecache.getline(args.after, i+1)
         else:
             key = linecache.getline(args.after, i+1).split()[0][1:]
+            key = key.split('|')[0]
             seq = linecache.getline(args.after, i+2)
         d[key] = seq.strip() # Key =  read ID, value = sequence after pcr.seqs cmd was run
         
@@ -153,12 +145,9 @@ def main():
     full['segment'] = full.apply(lambda x: x[2][x[10]:x[11]],axis=1) # x[2] is the 'before' seq, x[10] is index after fwd primer ends, x[11] is index where rev primer begins
     full.loc[full['start_fwd'] == -1, 'segment'] = "Forward primer not found"  # Indicate if the forward primer not found
 
-    new_full= full[['id', 'before', 'fwd', 'rev_complement', 'after', 'segment', 'primer_name', 'start_fwd', 'start', 'end']]
+    new_full= full[['id', 'before', 'fwd', 'rev_rc', 'after', 'segment', 'primer_name', 'fwd_rc', 'rev', 'start_fwd', 'start', 'end']]
 
-    pd.DataFrame.to_fwf = to_fwf
-    to_fwf(new_full, args.outfile)
-    # Note: this function isn't really necessary; I thought it would include a col width max option
-    # I cannot figure out how to apply a maxx column width to the output file
+    new_full.to_csv(args.outfile, header=True, index=False, sep='\t')
  
 if __name__ == '__main__':
     main()
