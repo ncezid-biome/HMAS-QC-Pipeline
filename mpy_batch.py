@@ -120,47 +120,5 @@ def main(config):
 
     m.rename.file(fasta='current', group='current', name='current', prefix=config.get('rename_param', 'prefix') +'.final')
 
-
-    # #from here on, we use try/except to avoid potential errors caused by empty chimera accnos file
-    # try:
-
-    # except RuntimeError:
-    #     print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
-    #     pass
-
-    # try:
-    #     m.remove.rare(list='current', count='current',
-    #                   nseqs=config.getint('rare_seqs_param', 'nseqs', fallback=9),
-    #                   label='unique')
-    # except RuntimeError:
-    #     print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
-    #     pass
-
-    # try:
-    #     m.summary.seqs(fasta='current', name='current')
-    # except RuntimeError:
-    #     print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
-    #     pass
-
-    # try:
-    #     m.list.seqs(count='current')
-    # except RuntimeError:
-    #     print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
-    #     pass
-
-    # try:
-    #     m.get.seqs(fasta='current', accnos='current', name='current', group='current')
-    # except RuntimeError:
-    #     print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
-    #     pass
-
-    # try:
-    #     m.rename.file(fasta='current', group='current', name='current', prefix=config.get('rename_param', 'prefix') +'.final')
-    # except RuntimeError:
-    #     print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
-    #     pass
-
-    # group.create_group(config, 'test_create_group')
-
 if __name__ == "__main__":
     print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
