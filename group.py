@@ -36,6 +36,28 @@ def get_current_group(mothur_log_file):
                                f"************************************************************")
     return current_group.group(0)[6:]  # strip the 'group='
 
+def get_current_accnos(mothur_log_file):
+    """
+    This utility function parses the MOTHUR log file, and retrieve the most current accnos file
+
+    Returns
+    -------
+    the most current group file name
+    """
+    current_accnos = ''
+    if os.access(mothur_log_file, os.R_OK):
+        with open(mothur_log_file, 'r', errors='ignore') as f:
+            log_file = f.read()
+        current_accnos_s = re.finditer(r'accnos=.*', log_file)
+        for current_accnos in current_accnos_s:  # we want to get the last find
+            pass
+        if not current_accnos:  # in case MOTHUR log file doesn't have group file
+            raise RuntimeError(f"************************************************************\n"
+                               f"return_code=None   Alert! ERROR\n"
+                               f"can't find accnos file in MOTHUR log\n"
+                               f"************************************************************")
+    return current_accnos.group(0)[7:]  # strip the 'accnos='
+
 
 def create_new_Group(config, oldgroup):
     """
@@ -187,14 +209,22 @@ def create_group(config, group_file_name):
     -------
 
     '''
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
     LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
     FILE_NAME = "group.log"
-    logging.basicConfig(filename=FILE_NAME, format=LOG_FORMAT, level=logging.DEBUG)
+    logging.basicConfig(filename=FILE_NAME, format=LOG_FORMAT, level=logging.INFO)
     logger = logging.getLogger()
 
     # assuming config file is already checked !!
     with open(config['file_inputs']['batch_file']) as f:
         R1,R2,I1,I2 = f.readlines()[0].split()
+
+    input_dir = config['file_inputs']['input_dir'] + '/'
+    R1 = input_dir + R1
+    R2 = input_dir + R2
+    I1 = input_dir + I1
 
     oligos = config['file_inputs']['oligos']
 
@@ -207,6 +237,7 @@ def create_group(config, group_file_name):
     global has_I2_index
     if I2.upper() != 'NONE':
         has_I2_index = True
+        I2 = input_dir + I2
 
     # oligo file has 4 columns:
     # primer f_primer r_primer primer_id
