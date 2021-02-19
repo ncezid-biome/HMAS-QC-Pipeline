@@ -57,7 +57,7 @@ def main(config):
                     pdiffs=config.getint('contigs_params', 'pdiffs', fallback = 0), 
                     checkorient=config.get('contigs_params', 'checkorient', fallback = 't'), 
                     insert=config.getint('contigs_params', 'insert', fallback = 25), 
-                    trimoverlap=config.get('contigs_params', 'trimoverlap', fallback = 'f'),
+                    trimoverlap=config.get('contigs_params', 'trimoverlap', fallback = 't'),
                     allfiles=config.get('contigs_params','allfiles', fallback = 0))
 
     # this serves as a check point and make sure that:
@@ -78,21 +78,10 @@ def main(config):
     m.count.seqs(name='current', group='current')
     m.summary.seqs(fasta='current', name='current')
 
-    # m.pcr.seqs(fasta='current',
-    #             oligos='current',
-    #             pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0),
-    #             rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0),
-    #             group='current', name='current')
-    # m.summary.seqs(fasta='current', name='current')
-
-    # m.unique.seqs(fasta='current', name='current')
-    # m.count.seqs(name='current', group='current')
-    # m.summary.seqs(fasta='current', name='current')
-
     m.get.current() # let MOTHUR log the most current group file
     old_group = group.get_current_group(MOTHUR_LOG_FILE)
     new_group = group.create_new_Group(config, old_group)
-    old_accnos = group.get_current_accnos(MOTHUR_LOG_FILE) 
+    old_accnos = group.get_current_accnos(MOTHUR_LOG_FILE)
 
     dir = config['file_inputs']['output_dir']
     for accnos_file in glob.glob(rf"{dir}/*.accnos"):
@@ -134,7 +123,7 @@ def main(config):
 
     # #from here on, we use try/except to avoid potential errors caused by empty chimera accnos file
     # try:
-        
+
     # except RuntimeError:
     #     print (f'we ignored a non-fatal error, please refer to MOTHUR LOG for details')
     #     pass
