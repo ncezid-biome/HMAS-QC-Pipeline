@@ -77,17 +77,6 @@ def main(config):
     m.count.seqs(name='current', group='current')
     m.summary.seqs(fasta='current', name='current')
 
-    m.pcr.seqs(fasta='current',
-                oligos='current',
-                pdiffs=config.getint('pcr_params', 'pdiffs', fallback = 0),
-                rdiffs=config.getint('pcr_params', 'rdiffs', fallback = 0),
-                group='current', name='current')
-    m.summary.seqs(fasta='current', name='current')
-
-    m.unique.seqs(fasta='current', name='current')
-    m.count.seqs(name='current', group='current')
-    m.summary.seqs(fasta='current', name='current')
-
     m.get.current() # let MOTHUR log the most current group file
     old_group = group.get_current_group(MOTHUR_LOG_FILE)
     new_group = group.create_new_Group(config, old_group)
