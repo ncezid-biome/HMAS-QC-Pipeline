@@ -85,7 +85,7 @@ def main(config):
 
     dir = config['file_inputs']['output_dir']
     for accnos_file in glob.glob(rf"{dir}/*.accnos"):
-        if os.path.getsize(accnos_file) == 0: # we shouldn't find any accnos file at this stage, but we check anyway
+        if os.path.getsize(accnos_file) == 0: # we shouldn't find any empty accnos file at this stage, but we check anyway
             os.remove(accnos_file)
 
     # Search for chimeras
@@ -93,7 +93,7 @@ def main(config):
     m.chimera.vsearch(fasta='current', name='current', group=new_group, dereplicate='t', vsearch=r'~/bin/vsearch')
 
     # check for emptry accnos file
-    # because we checked already, if we find another accnos file, it must come from chimera.vsearch()
+    # because we checked already, if we find another empty accnos file, it must come from chimera.vsearch()
     chimera_accnos_empty = False
     for accnos_file in glob.glob(rf"{dir}/*.accnos"):
         if os.path.getsize(accnos_file) == 0:
