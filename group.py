@@ -170,8 +170,6 @@ def match_primer(bar_key):
 def check_primer(seq, primer):
     '''
     This function checks if the passed in sequence starts with the primer
-    note: the primer might have bases other than 'ACGT'
-    *** we currently will ignore any of those bases, which might not be correct ***
 
     Parameters
     ----------
@@ -183,11 +181,12 @@ def check_primer(seq, primer):
     True (if matched) or False otherwise
 
     '''
-    base = 'ACGT'
+    IUPAC_dict = {'A': 'A', 'C': 'C', 'G': 'G', 'T': 'T',
+                  'Y': 'CT', 'R': 'AG', 'W': 'AT', 'S': 'CG', 'K': 'TG', 'M': 'AC',
+                  'D': 'AGT', 'V': 'ACG', 'H': 'ACT','B': 'CGT', 'N': 'ACGT'}
     for index in range(len(primer)):
-        if primer[index] not in base:  # if it's not ACGT, skip that base
-            continue
-        elif seq[index] != primer[index]:
+        bases = IUPAC_dict[primer[index]]
+        if all(seq[index] != base for base in bases):
             return False
 
     return True
