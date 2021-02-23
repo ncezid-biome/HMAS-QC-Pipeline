@@ -83,7 +83,7 @@ def main():
     for i in random_sample:
         line = linecache.getline(args.after, i) # Get the line corresponding to the random integer
         # If line is a READ ID, make that the key. If not, make the next line the key.
-        if line.startswith('>M00347'):
+        if line.startswith('>'):
             key = line.rstrip().split()[0][1:]
             key = key.split('|')[0]
             seq = linecache.getline(args.after, i+1)
@@ -96,7 +96,7 @@ def main():
     # For the read IDs in dict, get the sequence before pcr.seqs command was run
     with open(args.before, 'r') as f:
         for line in f:
-            if line.startswith('>M00347'):
+            if line.startswith('>'):
                 if line.strip().split()[0][1:] in d.keys():
                     append_value(d, line.strip().split()[0][1:], next(f).strip())
 
