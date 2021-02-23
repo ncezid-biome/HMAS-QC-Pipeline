@@ -1,4 +1,4 @@
-import regex
+import re
 import argparse
 from Bio.Seq import Seq
 
@@ -104,7 +104,7 @@ def match_primer(primer,seq):
     '''
     primer_list = IUPAC_translation(primer)
     for p in primer_list:
-        found = regex.search(f"({p}){{e<=3}}", seq)
+        found = re.search(f"({p}){{e<=3}}", seq)
         if found:
             return found
 
