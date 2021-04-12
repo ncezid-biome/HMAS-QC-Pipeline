@@ -106,6 +106,10 @@ def main(config):
         m.set.current(group=old_group)
         m.remove.seqs(fasta='current', accnos='current', group='current', name='current')
 
+    # New unique.seqs added here
+    m.unique.seqs(fasta='current', name='current')
+
+
     m.cluster(count='current', method='unique', cutoff='unique')
 
     m.remove.rare(list='current', count='current',
@@ -118,7 +122,9 @@ def main(config):
 
     m.get.seqs(fasta='current', accnos='current', name='current', group='current')
 
-    m.rename.file(fasta='current', group='current', name='current', prefix=config.get('rename_param', 'prefix') +'.final')
+    m.summary.seqs(fasta='current', name='current')
+
+    m.rename.file(fasta='current', group='current', name='current', count='current', list='current', prefix=config.get('rename_param', 'prefix') +'.final')
 
 if __name__ == "__main__":
     print("This module is called by pipeline.py.  Please run pipeline.py --help for more information")
