@@ -114,7 +114,7 @@ def main(config):
     m.cluster(count='current', method='unique', cutoff='unique')
 
     m.remove.rare(list='current', count='current',
-                      nseqs=config.getint('rare_seqs_param', 'nseqs', fallback=9),:x!
+                      nseqs=config.getint('rare_seqs_param', 'nseqs', fallback=9),
 
                       label='unique')
 
