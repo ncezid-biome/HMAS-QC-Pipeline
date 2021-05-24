@@ -33,11 +33,13 @@ This pipeline has been designed and tested under Linux CentOS and Ubuntu platfor
 
 2. Mothur must be installed and on your path. Find mothur installation guide [here](https://mothur.org/wiki/installation/).  
 
-	Note: The easiest way to make sure Mothur is on your path is to download the zip file and unzip it in your local bin directory. 
+	Note: The easiest way to make sure Mothur is on your path is to download the zip file and unzip it in your local bin directory.
+        For CDC users, installing it yourself this way is better than using the module version of Mothur.  That version has not been tested here.
+        The last version of Mothur that has been tested is 1.44.3. 
 
 3. You must have the mothur_py package installed.  Read more about mothur-py [here](https://pypi.org/project/mothur-py/).
 	`pip install mothur-py`
-
+         Last tested the install in May 2020.
 
 
 ## INSTALL
