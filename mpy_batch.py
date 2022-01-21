@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-import os
+import sys, os, shutil, subprocess
 from datetime import datetime
 from mothur_py import Mothur
 import re
-import group
+import group, run_cutadapt
 import glob
+from collections import deque
+import concurrent.futures
 
 MOTHUR_LOG_FILE = ''
 
@@ -74,11 +76,44 @@ def main(config):
     m.unique.seqs(fasta='current')
     m.summary.seqs(fasta='current', name='current')
 
+    print(datetime.now()) 
+    old_group = group.get_current_file(MOTHUR_LOG_FILE)
+    print (f"old group is: {old_group}")
+    new_group = group.create_new_Group(old_group)
+    print (f"new group is: {new_group}")
+    print(datetime.now()) 
 
-    m.get.current() # let MOTHUR log the most current group file
-    old_group = group.get_current_group(MOTHUR_LOG_FILE)
-    new_group = group.create_new_Group(config, old_group)
-    old_accnos = group.get_current_accnos(MOTHUR_LOG_FILE) 
+    old_accnos = group.get_current_file(MOTHUR_LOG_FILE, 'accnos') 
+    old_fasta = group.get_current_file(MOTHUR_LOG_FILE, 'fasta')
+    print (f"old fasta is: {old_fasta}")
+    print (f"old accnos is: {old_accnos}")
+
+    #1. create primer pair group file
+    new_group_primer = group.create_new_Group(old_group, 'primer')
+    print (f"new group primer is: {new_group_primer}")
+    print(datetime.now()) 
+
+    #2. count.seqs()
+    m.count.seqs(name='current', group=new_group_primer)
+    print(datetime.now()) 
+    print(f"done with count.seqs")
+
+    #3. split.groups()
+    m.split.groups(fasta=old_fasta, count='current')
+    print(datetime.now()) 
+    print(f"done with split.groups")
+
+
+    new_fasta = f'{old_fasta[:-5]}merged.fasta'
+    run_cutadapt.run_cutadapt_mothur(config, new_fasta, 60)
+
+    # add these to avoid potential duplicate name issue in fasta file
+    m.list.seqs(fasta=new_fasta) #list all the unique names in the fasta file
+    m.get.seqs(fasta='current', accnos='current') #remove any duplicate names
+    #6. unique.seqs
+    m.unique.seqs(fasta='current')
+    m.summary.seqs(fasta='current', name='current')
+
 
     dir = config['file_inputs']['output_dir']
     for accnos_file in glob.glob(rf"{dir}/*.accnos"):
@@ -104,9 +139,13 @@ def main(config):
         m.remove.seqs(fasta='current', accnos='current', group='current', name='current')
 
     # this works, but just takes too long,  over 3 days for Juno data M347-21-026 M347-21-027..
-    # m.count.seqs(name='current', group='current')
-    # m.pre.cluster(fasta='current', count='current')
     m.count.seqs(name='current', group='current')
+    print(datetime.now()) 
+    print(f"done with count.seqs")
+    m.pre.cluster(fasta='current', count='current', diffs=0)
+    print(datetime.now()) 
+    print(f"done with pre.cluster")
+
 
 
     m.summary.seqs(fasta='current', count='current')
@@ -117,11 +156,13 @@ def main(config):
                       label='unique')
 
     m.list.seqs(count='current')
-    # m.get.seqs(fasta='current', accnos='current')
     m.get.seqs(fasta='current', accnos='current', name='current', group='current')
     m.summary.seqs(fasta='current', count='current')
 
     m.rename.file(fasta='current', count='current', prefix=config.get('rename_param', 'prefix') +'.final')
+
+    # convert to full format count_table
+    m.count.seqs(count='current', compress='f')
 
 
 if __name__ == "__main__":

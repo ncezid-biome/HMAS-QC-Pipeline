@@ -65,7 +65,7 @@ def make_blast_db(reference, dbtype, makeblastdb):
 
     """
     db_name = os.path.splitext(reference)[0]
-    p = subprocess.run([makeblastdb, '-in', reference, '-out', db_name, '-dbtype', dbtype])
+    p = subprocess.run([makeblastdb, '-in', reference, '-out', db_name, '-dbtype', dbtype, '-parse_seqids'])
     if p.returncode != 0:
         print("makeblastdb could not be executed.  Error encountered.")
         print(p.returncode)

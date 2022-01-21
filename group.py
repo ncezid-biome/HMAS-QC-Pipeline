@@ -14,6 +14,27 @@ df_I2 = pd.DataFrame()
 has_I2_index = False
 
 
+def revcomp(myseq):
+    rc = {'A' : 'T', 'T' : 'A', 'G' : 'C', 'C' : 'G'}
+    seq = [rc[n] if n in rc else n for n in myseq] # allow IUPAC code to stay as is
+    return("".join(list(reversed(seq))))
+
+class Primers:
+    'Parses mothur oligos file and extracts the primer names. Stole from A. Jo Williams-Newkirk'
+    
+    def __init__(self, fname):
+        self.fname = fname
+        self.pseqs = dict()
+        Primers.reader(self, self.fname, self.pseqs)
+        self.pnames = self.pseqs.keys()
+    
+    def reader(self, fname, pseqs):
+        with open(fname, 'r') as infile:
+            for line in infile:
+                if line.startswith("primer"):
+                    tmp = line.split('\t')
+                    pseqs[tmp[3].strip('\n')] = [tmp[1], revcomp(tmp[2])]
+
 def get_current_group(mothur_log_file):
     """
     This utility function parses the MOTHUR log file, and retrieve the most current group file
@@ -58,35 +79,81 @@ def get_current_accnos(mothur_log_file):
                                f"************************************************************")
     return current_accnos.group(0)[7:]  # strip the 'accnos='
 
-
-def create_new_Group(config, oldgroup):
+def get_current_file(mothur_log_file, file_type='group'):
     """
-    This function parse the oligo file (in the config object), and use the barcode_label as a pattern
+    This utility function parses the MOTHUR log file, and retrieve the most current file for the specified type
+
+    Returns
+    -------
+    the most current file name
+    """
+    current_file = ''
+    if os.access(mothur_log_file, os.R_OK):
+        with open(mothur_log_file, 'r', errors='ignore') as f:
+            log_file = f.read()
+        current_file_s = re.finditer(rf"{file_type}=.*{file_type}(s)?", log_file)
+        for current_file in current_file_s:  # we want to get the last find
+            pass
+        if not current_file:  # in case MOTHUR log file doesn't have group file
+            raise RuntimeError(f"************************************************************\n"
+                               f"return_code=None   Alert! ERROR\n"
+                               f"can't find {file_type} file in MOTHUR log\n"
+                               f"************************************************************")
+    return current_file.group(0)[len(file_type)+1:]  # strip the 'file_type='
+
+
+# def create_new_Group(config, oldgroup, label='barcode'):
+#     """
+#     This function parse the oligo file (in the config object), and use the 'label' as a pattern
+#     to search the old_group file and create new group file
+#     Didn't do any checking on the passed-in config object. (assuming the calling code already checked on it)
+
+#     Parameters
+#     ----------
+#     config object, old_group file name, label string
+
+#     Returns
+#     -------
+#     new_group file name
+
+#     """
+#     path = config['file_inputs']['oligos']
+#     # path = config
+#     with open(path) as o, open(oldgroup) as g:
+#         # parse the oligo file and use the 'label' (4th column) as search pattern
+#         oldgroup_file = g.read()
+#         for barcode_label in (line.split()[3] for line in o.readlines() if label in line.split()[0]):
+#             oldgroup_file = re.sub(rf'{barcode_label}.*', barcode_label, oldgroup_file)
+
+#     with open(f"{oldgroup}_new_{label}", 'w') as f:
+#         f.write(oldgroup_file)
+
+#     return (f"{oldgroup}_new_{label}")
+
+def create_new_Group(oldgroup, label='barcode'):
+    """
+    This function parse the oligo file (in the config object), and use the 'label' as a pattern
     to search the old_group file and create new group file
     Didn't do any checking on the passed-in config object. (assuming the calling code already checked on it)
 
     Parameters
     ----------
-    config object, old_group file name
+    config object, old_group file name, label string
 
     Returns
     -------
     new_group file name
 
     """
-    path = config['file_inputs']['oligos']
-    # path = config
-    with open(path) as o, open(oldgroup) as g:
-        # parse the oligo file and use the barcode_label (4th column) as
-        # search pattern, to remove the temp files from m.chimera.vsearch
-        oldgroup_file = g.read()
-        for barcode_label in (line.split()[3] for line in o.readlines() if 'barcode' in line):
-            oldgroup_file = re.sub(rf'{barcode_label}.*', barcode_label, oldgroup_file)
 
-    with open(oldgroup + '_new', 'w') as f:
-        f.write(oldgroup_file)
+    df = pd.read_csv(oldgroup, sep='\t', header=None, names=['seq','group'])
+    if label == 'barcode':
+        df['group'] = df['group'].str.split('.').str[0]
+    else:
+        df['group'] = df['group'].str.split('.').str[1]
 
-    return (oldgroup + '_new')
+    df.to_csv(f"{oldgroup}_new_{label}", sep='\t', header=None, index=None)
+    return (f"{oldgroup}_new_{label}")
 
 
 def create_my_df(fastq_file, column_name):
