@@ -143,8 +143,8 @@ def plot_hist_abundance(bin_list, bins, out_file, x_label='number of samples whe
 	plt.title(title)
 	for i in range(bins): #we have 0..19 values
 		if int(arr[0][i]) > 0:
-			plt.text(arr[1][i]+10,arr[0][i]+10,str(int(arr[0][i])))
-			# plt.text(arr[1][i],arr[0][i]+10,str(int(arr[0][i])), fontsize=6, fontfamily='monospace')
+			# plt.text(arr[1][i]+10,arr[0][i]+10,str(int(arr[0][i])))
+			plt.text(arr[1][i],arr[0][i]+5,str(int(arr[0][i])), fontsize=10, fontfamily='monospace')
 
 	# plt.savefig('primer_bin_cutadapt_trimming_026.pdf', dpi=1600)
 	plt.savefig(out_file, dpi=1600)

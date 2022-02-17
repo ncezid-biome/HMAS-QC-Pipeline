@@ -9,7 +9,10 @@ import run_blast as blast
 import count_plot
 from operator import truediv
 # pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 
+# dilution_samples = "2011K_0222|2010K_0968|2010K_2370|2010K_1649|2011K_0052"
+dilution_samples_list = ["2011K_0222","2010K_0968","2010K_2370","2010K_1649","2011K_0052"]
 
 control_list = ['2013K_0676',
                 '2013K_1246',
@@ -52,7 +55,6 @@ def create_blast_df(blast_file, query_fasta, reference, max_hit):
     blast_df = pd.read_csv(blast_file, sep='\t', names=bcolnames)
     blast_df['sample'] = blast_df['primer'].str.strip().str.split('-').str[2] + '.'
     blast_df['primer'] = blast_df['primer'].str.strip().str.split('-').str[1]
-    # blast_df['sample_primer'] = blast_df[['sample','primer']].agg('.'.join, axis=1)
     blast_df['sample_primer'] = blast_df['sample'] + blast_df['primer']
 
     return blast_df
@@ -79,28 +81,24 @@ def merge_count_blast(df, primer_list, blast_df):
     '''
 
     #1.1 melt the df 
-    df = df.melt(id_vars=['seq'],value_vars=primer_list,var_name='sample_primer',value_name='count')
-    # df['primer'] = df['sample_primer'].str.strip().str.split('.').str[1]
-    print (df.head(n=5))
-    print (df.shape)
+    df = df.melt(id_vars=['seq'],value_vars=primer_list,var_name='sample_primer_orig',value_name='count')
+
+    # if it's a dilution sample, we change it from 2011K_0052_C.OG0002271primerGroup6
+    # to 2011K_0052.OG0002271primerGroup6 so it can match blast result
+    df['sample_primer'] = [sp.split('.')[0][:-2] + "." + sp.split('.')[1] \
+                            if sp.split('.')[0][:-2] in dilution_samples_list else sp for sp in df['sample_primer_orig']]
+    # df['sample_primer'] = df['sample_primer_orig'] # skip all the dilution data
 
     #1.2 merge 2 dfs (count table and blast result)
-    # df = pd.merge(df,blast_df,on=['seq','primer'])
     df = pd.merge(df,blast_df,on=['seq','sample_primer'])
-    print (df.head(n=5))
-    print (df.shape)
 
     #1.3 filter by pident == 100 & cov >= 90
     df = df[(df['pident'] == 100) & (df['cov'] >= 90)]
-    df.drop_duplicates(subset=['seq','sample_primer'], inplace=True)
-    print (df.head(n=5))
-    print (df.shape)
+    df.drop_duplicates(subset=['seq','sample_primer_orig'], inplace=True)
 
     #1.4 reverse the melt, and return to original format of df
-    df = df.drop(columns = ["query_len", "subj_len", "eval", "cov", "pident", "mismatch", "primer", "sample"])
-    df = df.pivot(index='seq',columns='sample_primer',values='count')
-    print (df.head(n=5))
-    print (df.shape)
+    df = df.drop(columns = ["query_len", "subj_len", "eval", "cov", "pident", "mismatch", "primer", "sample", "sample_primer"])
+    df = df.pivot(index='seq',columns='sample_primer_orig',values='count')
 
     return df
 
@@ -151,11 +149,10 @@ def split_samle_primer(sr, primers, sample_list):
 def plot_perfect_match(df, blast_df, sample_list):
 
     # helper method for checking passed in dateframe row value has perfect match in blast result
+    # this is supposed to run without those dilution samples (with appendex -B/C/D in the name)
     def find_perfect_match(row):
 
-        # primer = row['primer'].strip().split('.')[1]
         sample_primer = row['primer'].strip()
-        # match = blast_df[(blast_df['primer'] == primer) & (blast_df['seq'] == row['seq'])]
         match = blast_df[(blast_df['sample_primer'] == sample_primer) & (blast_df['seq'] == row['seq'])]
         if match.empty:
             return 0
@@ -231,15 +228,16 @@ def create_hit_table(df, sample_list, out_file):
     print (final_df.head(n=5))
     print (final_df.shape)
 
-    final_df['fail'] = final_df[final_df == 0].count(axis=1)
-    final_df['pass_below_5'] = final_df[(final_df <= 5) & (final_df > 0)].count(axis=1)
-    final_df['pass_over_5'] = final_df[final_df > 5].count(axis=1)
+    final_df_copy = final_df.copy()
+    final_df_copy['fail'] = final_df[final_df == 0].count(axis=1)
+    final_df_copy['pass_equal_1'] = final_df[(final_df <= 1) & (final_df > 0)].count(axis=1)
+    final_df_copy['pass_over_1'] = final_df[final_df > 1].count(axis=1)
 
-    move_column_inplace(final_df,'fail',0)
-    move_column_inplace(final_df,'pass_below_5',1)
-    move_column_inplace(final_df,'pass_over_5',2)
+    move_column_inplace(final_df_copy,'fail',0)
+    move_column_inplace(final_df_copy,'pass_equal_1',1)
+    move_column_inplace(final_df_copy,'pass_over_1',2)
 
-    final_df.to_csv(out_file, sep='\t')
+    final_df_copy.to_csv(out_file, sep='\t')
 
 
 
@@ -307,7 +305,7 @@ def main():
     print (blast_df.head(n=5))
     print (blast_df.shape)
 
-    #1. filter columns to only contain sample names in sample_list
+    #1. filter columns to contain only sample names in sample_list
     df.columns = df.columns.str.strip() # remove potential spaces
     seq_df = df.iloc[:,0] # keep the 1st column (sequence)
     primer_list = [i for i in df.columns if i.split('.')[0] in sample_list]
@@ -315,22 +313,21 @@ def main():
     df['seq'] = seq_df
 
     old_df = df.sum() #total abundanceall high quality seqs
-
-    # # df_copy = df.copy()
-    # # plot_perfect_match(df_copy, blast_df, sample_list) #plot the most abundant hit was a perfect match
+    
+    df_copy = df.copy() # df_copy will be changed within plot_perfect_match()
+    plot_perfect_match(df_copy, blast_df, sample_list) #plot the most abundant hit was a perfect match
 
     # filter out sequences so that seqs left all have matches in blast result and their pident == 100 & cov >= 90
-    df = merge_count_blast(df, primer_list, blast_df)
-    print (df.head(n=5))
-    print (df.shape)
+    # df = merge_count_blast(df, primer_list, blast_df)
+    # df.set_index('seq', inplace=True) # required if without merge_count_blast step !
     create_hit_table(df, sample_list, args.output)
-    # # print (df.head(n=5))
-    # # print (df.shape)
 
-    '''
+
     new_df = df.sum()
-    pd.to_pickle(new_df, f"perfect_match_sum_outputbase_newblast_dilution.pkl")
-    # new_df = pd.read_pickle(f"perfect_match_sum_outputbase_newblast.pkl")
+    pd.to_pickle(new_df, f"perfect_match_sum_dilution.pkl")
+    
+    # new_df = pd.read_pickle(f"perfect_match_sum_dilution.pkl")
+    # new_df = pd.read_pickle(f"../perfect_match_sum.pkl")
     
     # # perfect_match_abundance_list = list(new_df.values)
     # # print (len(perfect_match_abundance_list))
@@ -338,13 +335,14 @@ def main():
 
 
     new_df = split_samle_primer(new_df, get_column_list(new_df), sample_list)
-
-    # #plot all perfect matches abundance / total abundanceall high quality seqs
+    # plot all perfect matches abundance / total abundanceall high quality seqs
     old_df.drop(['seq'], inplace=True)
     old_df = split_samle_primer(old_df, get_column_list(old_df), sample_list)
-    abundance_div_df = new_df.div(old_df, fill_value = 0)
-    # count_plot.plot_hist_abundance(abundance_div_df, 'mean perfect match abundance / total abundance', 'primer count', \
-    #                                 'perfect match abundance ratio -- cutadapt trimming M347-21-026')
+    # print (old_df.mean(axis=1)) #print out mean coverage value
+    # print (new_df.mean(axis=1))
+    
+    abundance_div_df = new_df.div(old_df)
+    abundance_div_df.fillna(0,inplace=True)
     abundance_div_df = abundance_div_df.filter(items=[idx for idx in new_df.index if idx not in control_list], axis=0)
     bin_list = list(abundance_div_df.mean(axis=0).values)
     count_plot.plot_hist_abundance(bin_list, 20, 'abundance_ratio_cutadapt_trimming_026_new_dilution.pdf', \
@@ -355,25 +353,21 @@ def main():
     filtered_df = new_df.filter(items=[idx for idx in new_df.index if idx not in control_list], axis=0)
     bin_list = list(filtered_df.mean(axis=0).values)
     # the plot parameters likely need to be customized !
-    # count_plot.plot_hist_abundance(new_df, 'mean abundance value', 'primer count', \
-    #                                 'abundance histogram cutadapt trimming M347-21-026')
-    count_plot.plot_hist_abundance(bin_list, 10, 'abundance_bin_cutadapt_trimming_026_new_dilution.pdf', \
+    count_plot.plot_hist_abundance(bin_list, 15, 'abundance_bin_cutadapt_trimming_026_new_dilution.pdf', \
                                     'mean abundance value', 'primer count', \
                                     'abundance histogram cutadapt trimming M347-21-026')
-
-
 
     # the plot parameters need to be customized !
     # i.e. y-axis value, range, labels, etc...
     count_plot.plot_length_abundance(filtered_df, list(filtered_df.mean(axis=0).values), \
-                                    [175, 255, 0, 400], 'abundance_length_dist_cutadapt_trimming_026_new_dilution.pdf', 'mean abundance value')
+                                    [175, 255, 0, 200], 'abundance_length_dist_cutadapt_trimming_026_new_dilution.pdf', 'mean abundance value')
 
     count_plot.plot_length_abundance(filtered_df, list(map(truediv, list(filtered_df.std(axis=0).values), list(filtered_df.mean(axis=0).values))), \
-                                    [175, 255, 0, 4], 'CV_length_dist_cutadapt_trimming_026_new_dilution.pdf', 'CV (std / mean abundance value)')
+                                    [175, 255, 0, 2.5], 'CV_length_dist_cutadapt_trimming_026_new_dilution_2.5.pdf', 'CV (std / mean abundance value)')
 
     # # final_df = create_abundance_table(new_df)
     # # final_df.to_csv(args.output, sep='\t')
-
-    '''
+    
+    
 if __name__ == "__main__":
     main()
