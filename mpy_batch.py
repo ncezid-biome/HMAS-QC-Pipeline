@@ -84,6 +84,7 @@ def main(config):
     print(datetime.now()) 
 
     old_accnos = group.get_current_file(MOTHUR_LOG_FILE, 'accnos') 
+    
     old_fasta = group.get_current_file(MOTHUR_LOG_FILE, 'fasta')
     print (f"old fasta is: {old_fasta}")
     print (f"old accnos is: {old_accnos}")
@@ -105,15 +106,15 @@ def main(config):
 
 
     new_fasta = f'{old_fasta[:-5]}merged.fasta'
-    run_cutadapt.run_cutadapt_mothur(config, new_fasta, 60)
+    run_cutadapt.run_cutadapt_mothur(config, new_fasta, 36)
 
     # add these to avoid potential duplicate name issue in fasta file
     m.list.seqs(fasta=new_fasta) #list all the unique names in the fasta file
     m.get.seqs(fasta='current', accnos='current') #remove any duplicate names
     #6. unique.seqs
-    m.unique.seqs(fasta='current')
+    m.unique.seqs(fasta='current', name='current')
     m.summary.seqs(fasta='current', name='current')
-
+    
 
     dir = config['file_inputs']['output_dir']
     for accnos_file in glob.glob(rf"{dir}/*.accnos"):
@@ -122,7 +123,7 @@ def main(config):
 
     # Search for chimeras
     # need to use proper path for vsearch
-    m.chimera.vsearch(fasta='current', name='current', group=new_group, dereplicate='t', vsearch=r'~/HMAS-QC-Pipeline/mothur/vsearch')
+    m.chimera.vsearch(fasta='current', name='current', group=new_group, dereplicate='t', vsearch=config.get('chimera_params', 'vsearch'))
     # m.chimera.vsearch(fasta='current', count='current', dereplicate='t', vsearch=r'~/HMAS-QC-Pipeline/mothur/vsearch')
     # check for emptry accnos file
     # because we checked already, if we find another accnos file, it must come from chimera.vsearch()
@@ -142,9 +143,9 @@ def main(config):
     m.count.seqs(name='current', group='current')
     print(datetime.now()) 
     print(f"done with count.seqs")
-    m.pre.cluster(fasta='current', count='current', diffs=0)
-    print(datetime.now()) 
-    print(f"done with pre.cluster")
+    # m.pre.cluster(fasta='current', count='current', diffs=0)
+    # print(datetime.now()) 
+    # print(f"done with pre.cluster")
 
 
 

@@ -91,7 +91,7 @@ def get_current_file(mothur_log_file, file_type='group'):
     if os.access(mothur_log_file, os.R_OK):
         with open(mothur_log_file, 'r', errors='ignore') as f:
             log_file = f.read()
-        current_file_s = re.finditer(rf"{file_type}=.*{file_type}(s)?", log_file)
+        current_file_s = re.finditer(rf"{file_type}=.*{file_type}[^\s]*", log_file)
         for current_file in current_file_s:  # we want to get the last find
             pass
         if not current_file:  # in case MOTHUR log file doesn't have group file
