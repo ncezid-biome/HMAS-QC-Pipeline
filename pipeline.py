@@ -85,7 +85,7 @@ def main():
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-    logging.basicConfig(filename = config['file_inputs']['output_dir'] + '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
+    logging.basicConfig(filename = os.path.expanduser(config['file_inputs']['output_dir']) + '/hmas_qc_pipeline.log', format = LOG_FORMAT, level = logging.DEBUG)
     logger = logging.getLogger()
 
     logger.info(f'The config file to be parsed is: {args.config}')
@@ -107,6 +107,7 @@ def main():
         sys.exit(1)
 
     try:
+        # import mpy_batch_v47 as mpy_batch
         import mpy_batch
         mpy_batch.main(config)
         logger.info(f'mothur-py executed on files listed in {args.config}')
