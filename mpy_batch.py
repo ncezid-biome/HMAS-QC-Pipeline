@@ -45,7 +45,7 @@ def main(config):
     currentDir = os.getcwd()
     now = datetime.now()
     runDateTime = now.strftime("%Y%m%d%H%M%S")
-    MOTHUR_LOG_FILE = config.get('file_inputs', 'output_dir', fallback = currentDir)+'/mothur.'+runDateTime+'.logfile'
+    MOTHUR_LOG_FILE = os.path.expanduser(config['file_inputs']['output_dir'])+'/mothur.'+runDateTime+'.logfile'
     m = Mothur(logfile_name = MOTHUR_LOG_FILE)
 
     m.set.dir(input = config.get('file_inputs', 'input_dir', fallback = currentDir),
@@ -108,6 +108,9 @@ def main(config):
     new_fasta = f'{old_fasta[:-5]}merged.fasta'
     run_cutadapt.run_cutadapt_mothur(config, new_fasta, 36)
 
+    # reverse-expand ~, to avoid hypen issue in directory name
+    new_fasta = new_fasta.replace(os.path.expanduser('~'), '~', 1)
+
     # add these to avoid potential duplicate name issue in fasta file
     m.list.seqs(fasta=new_fasta) #list all the unique names in the fasta file
     m.get.seqs(fasta='current', accnos='current') #remove any duplicate names
@@ -116,7 +119,7 @@ def main(config):
     m.summary.seqs(fasta='current', name='current')
     
 
-    dir = config['file_inputs']['output_dir']
+    dir = os.path.expanduser(config['file_inputs']['output_dir'])
     for accnos_file in glob.glob(rf"{dir}/*.accnos"):
         if os.path.getsize(accnos_file) == 0: # we shouldn't find any accnos file at this stage, but we check anyway
             os.remove(accnos_file)
@@ -156,7 +159,8 @@ def main(config):
                       nseqs=config.getint('rare_seqs_param', 'nseqs', fallback=9),
                       label='unique')
 
-    m.list.seqs(count='current')
+    current_count = group.get_current_file(MOTHUR_LOG_FILE, 'count').replace(os.path.expanduser('~'), '~', 1)
+    m.list.seqs(count=current_count)
     m.get.seqs(fasta='current', accnos='current', name='current', group='current')
     m.summary.seqs(fasta='current', count='current')
 

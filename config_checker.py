@@ -8,7 +8,6 @@ def dirFileExists(config,section_name,option_name):
     """
     try:
         path = config[section_name][option_name]
-        # return os.access(path, os.R_OK)
         return os.path.exists(os.path.expanduser(path))
     except (KeyError): #option_name is not in 'file_inputs' section
         return False

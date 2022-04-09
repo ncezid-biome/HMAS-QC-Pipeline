@@ -68,10 +68,10 @@ def run_cutadapt_mothur(config, new_fasta, num_process):
 
 	#1. prep for cutadapt commands
 	cutadapt_commands = deque()
-	primers = group.Primers(config['file_inputs']['oligos'])
+	primers = group.Primers(os.path.expanduser(config['file_inputs']['oligos']))
 	cutadapt_cmd = cmd_exists('cutadapt')
 	for key in primers.pseqs:
-		for current_file in glob.glob(rf"{config['file_inputs']['output_dir']}/*{key}.fasta"):
+		for current_file in glob.glob(rf"{os.path.expanduser(config['file_inputs']['output_dir'])}/*{key}.fasta"):
 			# cutadapt_commands.append([cutadapt_cmd, f'--info-file={primers.pseqs[key][0]}_info.tsv', '-g', \
 			cutadapt_commands.append([cutadapt_cmd, '-g', \
 				f'{primers.pseqs[key][0]}...{primers.pseqs[key][1]}', '-o', \
@@ -91,7 +91,7 @@ def run_cutadapt_mothur(config, new_fasta, num_process):
 
 	#3. merge all fastas 
 	with open(new_fasta,'wb') as wfd:
-		for f in glob.glob(rf"{config['file_inputs']['output_dir']}/*_cutadapt"):
+		for f in glob.glob(rf"{os.path.expanduser(config['file_inputs']['output_dir'])}/*_cutadapt"):
 			with open(f,'rb') as fd:
 				shutil.copyfileobj(fd, wfd)
 

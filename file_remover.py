@@ -17,8 +17,8 @@ def remove_vsearch_files(config):
     None
 
     """
-    path = config['file_inputs']['oligos']
-    dir = config['file_inputs']['output_dir']
+    path = os.path.expanduser(config['file_inputs']['oligos'])
+    dir = os.path.expanduser(config['file_inputs']['output_dir'])
     with open(path) as f:
     #parse the oligo file and use the primer_id (4th column) as
     #search pattern, to remove the temp files from m.chimera.vsearch
