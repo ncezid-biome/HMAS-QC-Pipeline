@@ -90,7 +90,7 @@ def main(cfg_file):
     # it must have R1, R2 reads and at least I1 index file
     # in case of missing I2 index file, must have NONE or none in place
     missing_i2_flag = False
-    with open(config['file_inputs']['batch_file']) as f:
+    with open(os.path.expanduser(config['file_inputs']['batch_file'])) as f:
         for line in f.readlines():
             if not all(x in line for x in ["R1", "R2", "I1"]):
                 logger.error(f"*** You must specify both an R1,R2 and at least I1 file. Check all rows of your batch file")
@@ -105,7 +105,7 @@ def main(cfg_file):
 
     # check for evil characters: '-' and ',' in oligo file
     # MOTHUR will not accept special characters like '-' or ','
-    with open(config['file_inputs']['oligos']) as f:
+    with open(os.path.expanduser(config['file_inputs']['oligos'])) as f:
         for line in f.readlines():
             if any(evil in line for evil in ["-",","]):
                 logger.error(f'*** Either hyphens or commas found in oligo file. '
@@ -117,7 +117,7 @@ def main(cfg_file):
     # enforce proper oligo file format
     # in case of missing I2 index, use keyword NONE in the place of all I2 index
     if (missing_i2_flag):
-        with open(config['file_inputs']['oligos']) as f:
+        with open(os.path.expanduser(config['file_inputs']['oligos'])) as f:
             if all('NONE' in line.upper() for line in f.readlines() if 'barcode' in line):
                 logger.info(f"oligo file also has NONE in place of all missing I2 index")
             else:
