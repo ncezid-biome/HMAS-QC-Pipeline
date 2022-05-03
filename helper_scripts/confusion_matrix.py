@@ -16,8 +16,7 @@ import utilities
 import settings
 import logging
 
-sys.path.insert(0,r'..') # to allow import packages in parent folder
-import group
+# sys.path.insert(0,r'..') # to allow import packages in parent folder
 import run_grep
 
 LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
@@ -60,7 +59,7 @@ def get_oligo_primer_dict():
     Returns a dictionary
 
     '''
-    oligo_primers = group.Primers(settings.OLIGO_FILE)
+    oligo_primers = utilities.Primers(settings.OLIGO_FILE)
 
     return oligo_primers.pseqs
 

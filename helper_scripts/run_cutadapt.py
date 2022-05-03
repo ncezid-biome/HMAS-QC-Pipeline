@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import sys, os, shutil, subprocess, argparse
-import group
 import glob
 import re
 from collections import deque
 from datetime import datetime
 import concurrent.futures
-
+import utilities
 
 def cmd_exists(command):
 	"""Checks for existence of a command on user's path
@@ -68,7 +67,7 @@ def run_cutadapt_mothur(config, new_fasta, num_process):
 
 	#1. prep for cutadapt commands
 	cutadapt_commands = deque()
-	primers = group.Primers(os.path.expanduser(config['file_inputs']['oligos']))
+	primers = utilities.Primers(os.path.expanduser(config['file_inputs']['oligos']))
 	cutadapt_cmd = cmd_exists('cutadapt')
 	for key in primers.pseqs:
 		for current_file in glob.glob(rf"{os.path.expanduser(config['file_inputs']['output_dir'])}/*{key}.fasta"):

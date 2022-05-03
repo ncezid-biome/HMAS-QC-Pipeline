@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import logging, sys, os, argparse, shutil, errno
-import config_checker, log_parser, file_remover
 import re
+sys.path.insert(0,r'./helper_scripts') 
+import config_checker, log_parser, file_remover
 
 def find_tool(name):
     """Checks PATH for existence of an executable

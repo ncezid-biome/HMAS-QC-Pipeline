@@ -35,7 +35,7 @@ def main(cfg_file):
     else:
         logging.basicConfig(filename = os.getcwd() + '/config_checker_log.log', format=LOG_FORMAT,level = logging.DEBUG)
         logger = logging.getLogger()
-        logger.error("*** option 'output_dir' not found or 'output_dir does not exist")
+        logger.error(f"*** option 'output_dir' not found or 'output_dir does not exist")
         sys.exit(1)
 
 

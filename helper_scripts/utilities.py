@@ -1,3 +1,25 @@
+def revcomp(myseq):
+    rc = {'A' : 'T', 'T' : 'A', 'G' : 'C', 'C' : 'G', 'U' : 'A', 'Y' : 'R', 'R' : 'Y', 'K':'M', 'M':'K','B':'V',\
+            'D':'H', 'H':'D', 'V':'B', 'N':'N'}
+    seq = [rc[n] if n in rc else n for n in myseq] # allow non-IUPAC code to stay as is
+    return("".join(list(reversed(seq))))
+
+
+class Primers:
+    'Parses mothur oligos file and extracts the primer names. Stole from A. Jo Williams-Newkirk'
+    
+    def __init__(self, fname):
+        self.fname = fname
+        self.pseqs = dict()
+        Primers.reader(self, self.fname, self.pseqs)
+        self.pnames = self.pseqs.keys()
+    
+    def reader(self, fname, pseqs):
+        with open(fname, 'r') as infile:
+            for line in infile:
+                if line.startswith("primer"):
+                    tmp = line.split('\t')
+                    pseqs[tmp[3].strip('\n')] = [tmp[1], revcomp(tmp[2])]
 
 
 def create_fasta_dict(fasta):
