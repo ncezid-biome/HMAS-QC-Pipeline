@@ -19,9 +19,9 @@ import logging
 # sys.path.insert(0,r'..') # to allow import packages in parent folder
 import run_grep
 
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(level = logging.DEBUG,format = LOG_FORMAT,filename = f"confusion_matrix.log")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('root')
+logger.setLevel(logging.INFO)
+logger.addHandler(settings.log_handler)
 
 
 def sample_primer_df_to_dict(df):
