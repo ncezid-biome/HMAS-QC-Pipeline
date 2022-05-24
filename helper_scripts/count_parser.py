@@ -47,15 +47,16 @@ def read_count_table(count_file):
 def create_blast_df(blast_file, query_fasta, reference, max_hit):
 
     # the 'primer' is like: OG0000890-OG0000890primerGroup9-2014K_0979
-    bcolnames = ["seq", "primer", "query_len", "subj_len", "eval", "cov", "pident", "mismatch"]
+    bcolnames = ["seq", "primer", "query_len", "subj_len", "len_aln", "eval", "cov", "pident", "mismatch"]
 
     if not blast_file: #if we don't already have blast result as a text file
         blast_file = blast.blast(query_fasta, reference, os.path.basename(query_fasta), max_hit)
         
+    # blast_df = pd.read_csv(blast_file, sep='\t', names=bcolnames, index_col=False, header=None)
     blast_df = pd.read_csv(blast_file, sep='\t', names=bcolnames)
-    blast_df['sample'] = blast_df['primer'].str.strip().str.split('-').str[2] + '.'
-    blast_df['primer'] = blast_df['primer'].str.strip().str.split('-').str[1]
-    blast_df['sample_primer'] = blast_df['sample'] + blast_df['primer']
+    blast_df['sample'] = blast_df['primer'].str.split('-').str[2]
+    blast_df['primer'] = blast_df['primer'].str.split('-').str[1]
+    blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
 
     return blast_df
 
@@ -85,9 +86,9 @@ def merge_count_blast(df, primer_list, blast_df):
 
     # if it's a dilution sample, we change it from 2011K_0052_C.OG0002271primerGroup6
     # to 2011K_0052.OG0002271primerGroup6 so it can match blast result
-    df['sample_primer'] = [sp.split('.')[0][:-2] + "." + sp.split('.')[1] \
-                            if sp.split('.')[0][:-2] in dilution_samples_list else sp for sp in df['sample_primer_orig']]
-    # df['sample_primer'] = df['sample_primer_orig'] # skip all the dilution data
+    # df['sample_primer'] = [sp.split('.')[0][:-2] + "." + sp.split('.')[1] \
+    #                         if sp.split('.')[0][:-2] in dilution_samples_list else sp for sp in df['sample_primer_orig']]
+    df['sample_primer'] = df['sample_primer_orig'] # skip all the dilution data
 
     #1.2 merge 2 dfs (count table and blast result)
     df = pd.merge(df,blast_df,on=['seq','sample_primer'])
@@ -314,17 +315,16 @@ def main():
 
     old_df = df.sum() #total abundanceall high quality seqs
     
-    df_copy = df.copy() # df_copy will be changed within plot_perfect_match()
-    plot_perfect_match(df_copy, blast_df, sample_list) #plot the most abundant hit was a perfect match
+    # df_copy = df.copy() # df_copy will be changed within plot_perfect_match()
+    # plot_perfect_match(df_copy, blast_df, sample_list) #plot the most abundant hit was a perfect match
 
-    # filter out sequences so that seqs left all have matches in blast result and their pident == 100 & cov >= 90
-    # df = merge_count_blast(df, primer_list, blast_df)
-    # df.set_index('seq', inplace=True) # required if without merge_count_blast step !
-    create_hit_table(df, sample_list, args.output)
-
+    # # filter out sequences so that seqs left all have matches in blast result and their pident == 100 & cov >= 90
+    df = merge_count_blast(df, primer_list, blast_df)
+    # # df.set_index('seq', inplace=True) # required if without merge_count_blast step !
+    # create_hit_table(df, sample_list, args.output)
 
     new_df = df.sum()
-    pd.to_pickle(new_df, f"perfect_match_sum_dilution.pkl")
+    # pd.to_pickle(new_df, f"perfect_match_sum_dilution.pkl")
     
     # new_df = pd.read_pickle(f"perfect_match_sum_dilution.pkl")
     # new_df = pd.read_pickle(f"../perfect_match_sum.pkl")
@@ -340,6 +340,9 @@ def main():
     old_df = split_samle_primer(old_df, get_column_list(old_df), sample_list)
     # print (old_df.mean(axis=1)) #print out mean coverage value
     # print (new_df.mean(axis=1))
+    print (old_df.mean(axis=1)) #print out mean coverage value
+
+    '''
     
     abundance_div_df = new_df.div(old_df)
     abundance_div_df.fillna(0,inplace=True)
@@ -367,7 +370,7 @@ def main():
 
     # # final_df = create_abundance_table(new_df)
     # # final_df.to_csv(args.output, sep='\t')
-    
+    '''
     
 if __name__ == "__main__":
     main()

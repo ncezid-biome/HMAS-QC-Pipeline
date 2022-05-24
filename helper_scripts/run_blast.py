@@ -106,7 +106,7 @@ def run_blast(db, fasta, outfile, blastn, maxhits=10):
     p = subprocess.run(
         [blastn, '-db', db, '-query', fasta,
          '-outfmt',
-         '6 qseqid sseqid qlen slen evalue qcovs pident mismatch',
+         '6 qseqid sseqid qlen slen length evalue qcovs pident mismatch',
          '-max_target_seqs', str(maxhits), '-out', blast_out])
     if p.returncode != 0:
         print("blastn could not be executed.  Error encountered.")
