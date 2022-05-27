@@ -181,6 +181,9 @@ def main():
     raw_mean_df = raw_df.loc[~raw_df.index.isin(control_list)].mean(axis=1)
     print (raw_mean_df)
     print (raw_mean_df.mean())
+    raw_df['mean'] = raw_df.mean(axis=1) # add a mean value column to the last
+    saved_file = 'raw_df.tsv' 
+    raw_df.to_csv(saved_file, sep='\t') # save as a tsv file
 
 
     # comment out this block if you don't need blast filtering
@@ -192,7 +195,9 @@ def main():
     new_mean_df = new_df.loc[~new_df.index.isin(control_list)].mean(axis=1)
     print (new_mean_df)
     print (new_mean_df.mean())
-
+    new_df['mean'] = new_df.mean(axis=1) # add a mean value column to the last
+    saved_file = 'new_df.tsv' 
+    new_df.to_csv(saved_file, sep='\t') # save as a tsv file
 
 if __name__ == "__main__":
     main()
