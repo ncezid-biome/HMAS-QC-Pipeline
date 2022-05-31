@@ -83,6 +83,9 @@ def merge_count_blast(df, primer_list, blast_df):
 
     #1.3 filter by pident == 100 & cov >= 90
     df = df[(df['pident'] == 100) & (df['cov'] >= 90)]
+    # this line shouldn't do anything now because we set -max_hsps to 1 in blast
+    # so it will not have a row with the same "seq  sample_primer_orig" in it
+    # but I keep it here for safe-guarding
     df.drop_duplicates(subset=['seq','sample_primer_orig'], inplace=True)
 
     #1.4 reverse the melt, and return to original format of df
