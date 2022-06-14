@@ -6,7 +6,6 @@ import numpy as np
 import datetime
 from pathlib import Path
 import run_blast as blast
-import count_plot
 from operator import truediv
 # pd.set_option('display.max_columns', None)
 # pd.set_option('display.max_rows', None)
