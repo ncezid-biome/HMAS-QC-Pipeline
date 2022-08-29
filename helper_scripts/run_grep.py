@@ -62,7 +62,7 @@ def exec_grep_shell(grep_command):
 # for the given design.fasta file
 def get_primers_for_sample_design_fasta(design_fasta, sample):
 
-	grep_command = f"grep '{sample}' {design_fasta} | cut -d '-' -f2"
+	grep_command = f"grep -w '{sample}' {design_fasta} | cut -d '-' -f2"
 	return exec_grep_shell(grep_command).split()
 
 # this method checks the seqs in fasta1, to see if they also 
