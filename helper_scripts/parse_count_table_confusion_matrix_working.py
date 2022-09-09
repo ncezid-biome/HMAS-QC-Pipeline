@@ -7,6 +7,7 @@ import run_blast as blast
 import utilities
 import settings
 import run_grep
+import datetime
 
 # a list of control sample names
 # control_list = ['2013K_0676',
@@ -19,12 +20,6 @@ import run_grep
 
 control_list = ['2014K_0979',
                 'Water1']
-
-dilution_samples_list = ['2010K_0968',
-                         '2010K_1649',
-                         '2010K_2370',
-                         '2011K_0052',
-                         '2011K_0222']
 
 
 def get_oligo_primer_dict():
@@ -88,14 +83,6 @@ def create_blast_df(blast_file, query_fasta, reference, max_hit):
 
     return blast_df
 
-# def map_sample_to_isolate(x, m_dict):
-#     sample = x.split('.')[0]
-#     primer = x.split('.')[1]
-#     if sample in m_dict:
-
-
-#     isolate_list = m_dict[x]
-
 def merge_count_blast(df, primer_list, blast_df,map_dict):
     '''
     this method filters the original full-format count table (below), so that seqs 
@@ -120,15 +107,20 @@ def merge_count_blast(df, primer_list, blast_df,map_dict):
     #1.1 melt the df 
     df = df.melt(id_vars=['seq'],value_vars=primer_list,var_name='sample_primer_orig',value_name='count')
 
-    # if it's a dilution sample, we change it from 2011K_0052_C.OG0002271primerGroup6
-    # to 2011K_0052.OG0002271primerGroup6 so it can match blast result
-    # df['sample_primer'] = [sp.split('.')[0][:-2] + "." + sp.split('.')[1] \
-    #                         if sp.split('.')[0][:-2] in dilution_samples_list else sp for sp in df['sample_primer_orig']]
-    # df['sample_primer'] = df['sample_primer_orig'] # skip all the dilution data
+    # if needed to map samples to isolates
     if map_dict:
+        # match samples to their corresponding isolates
         df['sample_primer'] = [map_dict[sp.split('.')[0]][0] + "." +
-                                sp.split('.')[1] for sp in df['sample_primer_orig']]
-        # df['sample_primer'] = df['sample_primer_orig'].apply(map_sample_to_isolate, m_dict=map_dict)
+                                    sp.split('.')[1] for sp in df['sample_primer_orig']]
+        print (df.head(n=5))
+        print (df.shape)
+        print (f"{datetime.datetime.now()}")
+        # extract those Gut* samples in order to duplicate them
+        df_2 = df[df.sample_primer_orig.str.contains('Gut_', regex=False)]
+        # only those Gut* samples has the 2nd matching isolate
+        df_2['sample_primer'] = [map_dict[sp.split('.')[0]][1] + "." +
+                                    sp.split('.')[1] for sp in df_2['sample_primer_orig']]
+        df = df.append(df_2)
     else:
         df['sample_primer'] = df['sample_primer_orig']
 
@@ -137,11 +129,12 @@ def merge_count_blast(df, primer_list, blast_df,map_dict):
                         (blast_df['cov'] >= settings.PCOV)]
     #1.2 merge 2 dfs (count table and blast result)
     df = pd.merge(df,blast_df,on=['seq','sample_primer'])
+
     #1.3
     df.drop_duplicates(subset=['seq','sample_primer_orig'], inplace=True)
 
     #1.4 reverse the melt, and return to original format of df
-    df = df.drop(columns = ["query_len", "subj_len", "eval", "cov", "pident", "mismatch", "primer", "sample", "sample_primer"])
+    df = df.drop(columns = ["query_len", "subj_len", "eval", "cov", "pident", "mismatch", "primer", "sample", "sample_primer"], errors='ignore')
     df = df.pivot(index='seq',columns='sample_primer_orig',values='count')
 
     return df
@@ -274,6 +267,10 @@ def build_confusion_matrix(sample_list, reference, new_df_t, map_dict):
         primer_dict = get_oligo_primer_dict()
         if map_dict:
             primer_list = run_grep.get_primers_for_sample_design_fasta(reference, map_dict[key][0])
+            # Gut_10_3_1  Typhimurium	ParatyphiA might have 2 isolates
+            map_size = len(map_dict[key])
+            for i in range(1, map_size):
+                primer_list.extend(run_grep.get_primers_for_sample_design_fasta(reference, map_dict[key][i]))
         else:
             primer_list = run_grep.get_primers_for_sample_design_fasta(reference, key)
         primer_list = list(set(primer_dict.keys() & set(primer_list)))
@@ -316,9 +313,8 @@ def main():
     raw_df = df.sum() #total abundance all high quality seqs
     raw_df.drop(['seq'], inplace=True)
     raw_df = split_samle_primer(raw_df, get_column_list(raw_df), sample_list, raw_idx)
-    print (raw_df.mean(axis=1))
-    print (raw_df.mean(axis=1).mean())
-    raw_df['mean'] = raw_df.mean(axis=1) # add a mean value column to the last
+    # print (raw_df.mean(axis=1))
+    # print (raw_df.mean(axis=1).mean())
     raw_df.to_csv('raw_df', sep='\t') # save as a tsv file
 
     #blast filtering all sequences
@@ -328,9 +324,8 @@ def main():
     df = merge_count_blast(df, primer_list, blast_df, map_dict)
     new_df = df.sum()
     new_df = split_samle_primer(new_df, get_column_list(new_df), sample_list, raw_idx)
-    print (new_df.mean(axis=1))
-    print (new_df.mean(axis=1).mean())
-    new_df['mean'] = new_df.mean(axis=1) # add a mean value column to the last
+    # print (new_df.mean(axis=1))
+    # print (new_df.mean(axis=1).mean())
     new_df.to_csv('new_df', sep='\t') # save as a tsv file
 
     new_df_t = new_df.T
