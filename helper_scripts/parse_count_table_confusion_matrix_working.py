@@ -112,9 +112,6 @@ def merge_count_blast(df, primer_list, blast_df,map_dict):
         # match samples to their corresponding isolates
         df['sample_primer'] = [map_dict[sp.split('.')[0]][0] + "." +
                                     sp.split('.')[1] for sp in df['sample_primer_orig']]
-        print (df.head(n=5))
-        print (df.shape)
-        print (f"{datetime.datetime.now()}")
         # extract those Gut* samples in order to duplicate them
         df_2 = df[df.sample_primer_orig.str.contains('Gut_', regex=False)]
         # only those Gut* samples has the 2nd matching isolate
