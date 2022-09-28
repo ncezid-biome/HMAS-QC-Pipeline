@@ -7,7 +7,11 @@ import run_blast as blast
 import utilities
 import settings
 import run_grep
-import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(settings.log_handler)
 
 # a list of control sample names
 # control_list = ['2013K_0676',
@@ -35,6 +39,35 @@ def get_oligo_primer_dict():
 
     return primer_dict
 
+def cvs_to_dict(cvs_file):
+    '''
+    This method reads a standard cvs file, uses the 1st column as index to creates a dataframe
+    Then it converts the dataframe into a dictionary of dictionaries, with the index as key to 
+    the first dictionary and column names of the dataframe as the keys for the 2nd dictionary(s)
+    Ex.   this cvs file
+    seq_id  primer  sample
+    seq1    p1      s1
+    seq2    p2      s2
+    will turn into this structure:
+    {'seq1':{'primer':'p1','sample':'s1'},
+     'seq2':{'primer':'p2','sample':'s2'}}
+    
+    Parameters
+    ----------
+    cvs_file: the path to the cvs file 
+
+    Returns a dictionary of dictionaries
+    '''
+    df = pd.read_csv(cvs_file, index_col=0)
+    map_dict = df.T.to_dict()
+
+    return map_dict
+
+# this method reads mapping file (sample-to-isolate) in csv format
+# and return a dictionary of it 
+# key: sample (String)
+# value: a list of corresponding isolates 
+# (the list has no None value in it, and it's ensured to be a non-empty list)
 def map_sample_to_isolate(map_file):
 
     map_dict = None
@@ -48,6 +81,23 @@ def map_sample_to_isolate(map_file):
         # remove keys which has empty value
         new_map_dict = {key:val for key,val in map_dict.items() if len(val) > 0}
     return new_map_dict
+
+# this method will reverse the above sample-to-isolate dictionary, and 
+# will generate a isolate-to-sample dictionary
+# key: isolate (String)
+# value: a list of corresponding samples
+def rev_map_isolate_to_sample(map_dict):
+    rev_map_dict = {}
+    for key in map_dict:
+        isolates = map_dict[key]
+        for isolate in isolates:
+            if isolate not in rev_map_dict:
+                rev_map_dict[isolate] = [key]
+            else:
+                if key not in rev_map_dict[isolate]:
+                    rev_map_dict[isolate].append(key)
+    return rev_map_dict
+
 
 # helper method to read a full format count table, and/or save it as a pickle file for faster retrieval
 def read_count_table(count_file):
@@ -80,10 +130,42 @@ def create_blast_df(blast_file, query_fasta, reference, max_hit):
     blast_df['sample'] = blast_df['primer'].str.split('-').str[2]
     blast_df['primer'] = blast_df['primer'].str.split('-').str[1]
     blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
+    ### TO DO
+    # de-couple the formatting 
+    # use the cvs_to_dict() fuction to get the dict
+    # '>OG0000294-OG0000294primerGroup8-ParatyphiA rc' - the seq_id will be a key of a dictionary
+    # blast_df['primer'] = [ dict[seq_id]['primer'] for seq_id in blast_df['primer']]
+    # blast_df['sample'] = [ dict[seq_id]['sample'] for seq_id in blast_df['primer']]
+    # blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
 
     return blast_df
 
-def merge_count_blast(df, primer_list, blast_df,map_dict):
+def blast_map_sample_to_isolate(blast_df, map_dict):
+    '''
+    this method helps to convert the 'isolate.primer' column in blast result into its corresponding
+    'sample.primer' instead. One isolate might correspond to multiple samples, and this is taken
+    care of by explode() method
+
+    Parameters
+    ----------
+    blast_df: the original blast result df
+    map_dict: the dictionary of isolate(key) to samples (a list of all corresponding samples)
+
+    Returns the converted blast result dataframe
+    '''
+    def map_sample_to_isolate(x):
+        sep = '.'
+        isolate = x.split(sep)[0]
+        primer_pair = x.split(sep)[1]
+        sample_list = map_dict[isolate]
+        return [f"{sample}{sep}{primer_pair}" for sample in sample_list]
+
+    blast_df['sample_primer'] = blast_df['sample_primer'].apply(map_sample_to_isolate)
+
+    return blast_df.explode('sample_primer', ignore_index=True)
+
+
+def merge_count_blast(df, primer_list, blast_df):
     '''
     this method filters the original full-format count table (below), so that seqs 
     all have matches in blast result and their pident == 100 & cov >= 90
@@ -106,32 +188,23 @@ def merge_count_blast(df, primer_list, blast_df,map_dict):
 
     #1.1 melt the df 
     df = df.melt(id_vars=['seq'],value_vars=primer_list,var_name='sample_primer_orig',value_name='count')
-
-    # if needed to map samples to isolates
-    if map_dict:
-        # match samples to their corresponding isolates
-        df['sample_primer'] = [map_dict[sp.split('.')[0]][0] + "." +
-                                    sp.split('.')[1] for sp in df['sample_primer_orig']]
-        # extract those Gut* samples in order to duplicate them
-        df_2 = df[df.sample_primer_orig.str.contains('Gut_', regex=False)]
-        # only those Gut* samples has the 2nd matching isolate
-        df_2['sample_primer'] = [map_dict[sp.split('.')[0]][1] + "." +
-                                    sp.split('.')[1] for sp in df_2['sample_primer_orig']]
-        df = df.append(df_2)
-    else:
-        df['sample_primer'] = df['sample_primer_orig']
+    # change dtype for 'count' to save memory
+    df = df.astype({'count':int})
+    df['sample_primer'] = df['sample_primer_orig']
 
     blast_df = blast_df[(blast_df['pident'] >= settings.PIDENT) & \
                         (blast_df['len_aln']/blast_df['subj_len'] >= settings.P_ALIGN) & \
                         (blast_df['cov'] >= settings.PCOV)]
-    #1.2 merge 2 dfs (count table and blast result)
     df = pd.merge(df,blast_df,on=['seq','sample_primer'])
 
     #1.3
+    # duplicates come from the exploded blast_df, and they're all identical in 
+    # the subset of ['seq','sample_primer_orig','count'], so we only need to keep one of them
     df.drop_duplicates(subset=['seq','sample_primer_orig'], inplace=True)
 
     #1.4 reverse the melt, and return to original format of df
-    df = df.drop(columns = ["query_len", "subj_len", "eval", "cov", "pident", "mismatch", "primer", "sample", "sample_primer"], errors='ignore')
+    # df = df.drop(columns = ["query_len", "subj_len", "eval", "cov", "pident", "mismatch", "primer", "sample", "sample_primer_x","sample_primer_y"], errors='ignore')
+    df = df[['seq','sample_primer_orig','count']]
     df = df.pivot(index='seq',columns='sample_primer_orig',values='count')
 
     return df
@@ -285,6 +358,10 @@ def build_confusion_matrix(sample_list, reference, new_df_t, map_dict):
         FP = merged_df[(merged_df['prediction'] == 0) & (merged_df['blast'] >= 0)].shape[0]
         df_dict[key] = [TP,FP,FN,TN]
 
+        logger.info(f"sample is: {key}")
+        logger.info (f"FP are: {merged_df[(merged_df['prediction'] == 0) & (merged_df['blast'] >= 0)].index.tolist()}")
+        logger.info (f"sanity check: {len(primer_dict)}, {len(primer_dict) == (TP + TN + FP + FN)}")
+
     return df_dict
 
 def main():
@@ -314,11 +391,20 @@ def main():
     # print (raw_df.mean(axis=1).mean())
     raw_df.to_csv('raw_df', sep='\t') # save as a tsv file
 
-    #blast filtering all sequences
+    #creat the blast df, to blast filtering all sequences
     blast_df = create_blast_df(args.blast, args.fasta, args.reference, 100)
     # mapping dictionary between sample and isolate
     map_dict = map_sample_to_isolate(args.map_file)
-    df = merge_count_blast(df, primer_list, blast_df, map_dict)
+    # if the mapping is required
+    if map_dict:
+        # create a reverse mapping between isolate and samples
+        # faster this way
+        rev_map_dict = rev_map_isolate_to_sample(map_dict)
+        # create a new blast df based on the above mapping
+        blast_df = blast_map_sample_to_isolate(blast_df, rev_map_dict)
+
+    # the filtered version of our count table df
+    df = merge_count_blast(df, primer_list, blast_df)
     new_df = df.sum()
     new_df = split_samle_primer(new_df, get_column_list(new_df), sample_list, raw_idx)
     # print (new_df.mean(axis=1))
