@@ -57,6 +57,7 @@ non_match_primer_file_extension = '_not_match_primers.txt'
 metasheet_file_extension = '_metasheet.csv'
 metasheet_table_columns = ['seq_id', 'primer', 'sample']
 mismatch_percent = 6
+max_amplicon_len = 375
 
 
 def runPrimerSearch(seq_file, primer_file, output_file):
@@ -134,17 +135,19 @@ def parsePrimerSearch(primersearch_results, full_length_dict):
                     startIndex = startIndex + forward_primer_length
                     endIndex = endIndex - reverse_primer_length
 
-                    full_length_record = full_length_dict[seq_id]  # created SeqRecord from amplicon and add to list
-                    extracted_sequence = full_length_record.seq[startIndex:endIndex]
-                    # ampliconRec = SeqRecord(extracted_sequence, id=primer_name, name=primer_name, description=description)
-                    ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{seq_id}')
-                    extracted_amplicon_list.append(ampliconRec)
-                    
-                    seqid_list.append(f'{primer_name}-{seq_id}')
-                    seqid_primer_list.append(primer_name)
-                    seqid_isolate_list.append(seq_id)
-                    
-                    not_match_primer_list.pop() #remove this matched primers from the list
+                    # check if extracted amplicon is over the max length
+                    if endIndex - startIndex <= max_amplicon_len:
+                        
+                        full_length_record = full_length_dict[seq_id]  # created SeqRecord from amplicon and add to list
+                        extracted_sequence = full_length_record.seq[startIndex:endIndex]
+                        ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{seq_id}')
+                        extracted_amplicon_list.append(ampliconRec)
+                        
+                        seqid_list.append(f'{primer_name}-{seq_id}')
+                        seqid_primer_list.append(primer_name)
+                        seqid_isolate_list.append(seq_id)
+                        
+                        not_match_primer_list.pop() #remove this matched primers from the list
 
             elif "Primer name " in line:
                 # [\w-] is for any word or hyphen (which is not included in word definition)
