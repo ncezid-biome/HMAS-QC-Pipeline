@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse, os, sys
+from matplotlib.pyplot import axis
 import pandas as pd
 from pathlib import Path
 import logging
 # importing scripts under helper_scripts folder
-sys.path.insert(0,r'./helper_scripts')
+# sys.path.insert(0,r'./helper_scripts')
+# assume HMAS_QC_Pipeline is under user's home folder
+sys.path.insert(0,f"{os.path.expanduser('~')}/HMAS_QC_Pipeline/helper_scripts")
 import run_blast as blast
 import utilities
 import settings
@@ -25,8 +28,9 @@ logger.addHandler(settings.log_handler)
 #                 'Water1']
 
 # a list of control samples, which we will exclude from the analysis
-control_list = ['2014K_0979',
-                'Water1']
+# control_list = ['2014K_0979',
+#                 'Water1']
+control_list = []
 
 
 def get_oligo_primer_dict():
@@ -118,7 +122,7 @@ def read_count_table(count_file):
 
     return df
 
-def create_blast_df(blast_file, query_fasta, reference, max_hit):
+def create_blast_df(blast_file, query_fasta, reference, max_hit, metasheet_file):
 
     # the 'primer' is like: OG0000890-OG0000890primerGroup9-2014K_0979
     bcolnames = ["seq", "primer", "query_len", "subj_len", "len_aln", "eval", "cov", "pident", "mismatch"]
@@ -128,18 +132,27 @@ def create_blast_df(blast_file, query_fasta, reference, max_hit):
         
     # blast_df = pd.read_csv(blast_file, sep='\t', names=bcolnames, index_col=False, header=None)
     blast_df = pd.read_csv(blast_file, sep='\t', names=bcolnames)
-    # '>OG0000294-OG0000294primerGroup8-ParatyphiA rc'  remove the ' rc' part
-    blast_df['primer'] = blast_df['primer'].str.split().str[0]
-    blast_df['sample'] = blast_df['primer'].str.split('-').str[2]
-    blast_df['primer'] = blast_df['primer'].str.split('-').str[1]
-    blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
-    ### TO DO
+    
     # de-couple the formatting 
     # use the cvs_to_dict() fuction to get the dict
     # '>OG0000294-OG0000294primerGroup8-ParatyphiA rc' - the seq_id will be a key of a dictionary
-    # blast_df['primer'] = [ dict[seq_id]['primer'] for seq_id in blast_df['primer']]
-    # blast_df['sample'] = [ dict[seq_id]['sample'] for seq_id in blast_df['primer']]
-    # blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
+    # metasheet is a 3 column csv file, which contains explicit information of 
+    # which primer pair and sample does an amplicon sequence correspond to. For example:
+    # seq_id,primer,sample
+    # OG0002941-OG0002941primerGroup0-2014K_0324,OG0002941primerGroup0,2014K_0324
+    if metasheet_file:
+        map_dict = cvs_to_dict(metasheet_file)
+        blast_df['primer_new'] = [ map_dict[seq_id]['primer'] for seq_id in blast_df['primer']]
+        blast_df['sample'] = [ map_dict[seq_id]['sample'] for seq_id in blast_df['primer']]
+        blast_df.drop(columns='primer', inplace=True)
+        blast_df.rename(columns={'primer_new':'primer'}, inplace=True)
+        blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
+    else:
+        # '>OG0000294-OG0000294primerGroup8-ParatyphiA rc'  remove the ' rc' part
+        blast_df['primer'] = blast_df['primer'].str.split().str[0]
+        blast_df['sample'] = blast_df['primer'].str.split('-').str[2]
+        blast_df['primer'] = blast_df['primer'].str.split('-').str[1]
+        blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
 
     return blast_df
 
@@ -273,11 +286,13 @@ def parse_argument():
     parser = argparse.ArgumentParser(prog = 'pasr_count_table.py')
     parser.add_argument('-c', '--count_file', metavar = '', required = True, help = 'Specify count table')
     parser.add_argument('-s', '--sample_file', metavar = '', required = True, help = 'Specify sample list file')
-    parser.add_argument('-o', '--output', metavar = '', required = False, help = 'Specify output file')
+    parser.add_argument('-o', '--output', metavar = '', required = False, help = 'Specify output confusion-matrix file')
     parser.add_argument('-b', '--blast', metavar = '', required = False, help = 'Specify blast result file')
     parser.add_argument('-f', '--fasta', metavar = '', required = False, help = 'Specify fasta file output from HMAS QC pipeline (should have "final" in the filename).')
     parser.add_argument('-r', '--reference', metavar = '', required = False, help = 'Specify fasta file containing the positive control targets.')
     parser.add_argument('-m', '--map_file', metavar = '', required = False, help = 'Specify mapping file')
+    parser.add_argument('-e', '--metasheet', metavar = '', required = False, help = 'Specify metasheet csv file')
+    parser.add_argument('-p', '--report_file', metavar = '', required = False, help = 'Specify report file name')
 
     return parser.parse_args()
 
@@ -338,7 +353,7 @@ def build_confusion_matrix(sample_list, reference, new_df_t, map_dict):
     df_dict = {}
     for key in sample_list:
         primer_dict = get_oligo_primer_dict()
-        if map_dict:
+        if map_dict and (key in map_dict):
             primer_list = run_grep.get_primers_for_sample_design_fasta(reference, map_dict[key][0])
             # Gut_10_3_1  Typhimurium	ParatyphiA might have 2 isolates
             map_size = len(map_dict[key])
@@ -367,6 +382,44 @@ def build_confusion_matrix(sample_list, reference, new_df_t, map_dict):
         
     return df_dict
 
+
+def create_report(raw_df, report_file):
+    '''
+    this method calculates metrics like: Mean read depth, # of failed primer pairs and 
+    generate a report (csv file) for state public health lab
+
+    Parameters
+    ----------
+    raw_df: a reformatted dataframe (row:samples, column:primer pairs) of original count_table
+    report_file: the output file name
+
+    Returns
+    ----------
+    None
+    '''   
+    report_df = raw_df.copy()
+    
+    total_primer_count = len(get_oligo_primer_dict())
+    #this is failed primer pairs (common denominator) for all the samples
+    all_failed_pp_count = total_primer_count - len(raw_df.columns)
+    
+    #including those empty cell while calculating the mean
+    report_df['mean'] = report_df.fillna(0).mean(axis=1).apply(lambda x:(round(x,1)))
+    report_df['failed_pp'] = report_df.isna().sum(axis=1).apply(lambda x: x+all_failed_pp_count)
+    report_df['perc_successful_pp'] = round(1 - report_df['failed_pp']/total_primer_count, 3)
+    report_df['failed_pp'] = report_df['failed_pp'].apply(lambda x: f"{x} / {total_primer_count}")
+    
+    report_df = report_df[['mean','perc_successful_pp','failed_pp']]
+    #add 'Mean read depth across entire run' as a separate line at the end
+    report_df.loc['Mean read depth across entire run'] = [int(round(report_df['mean'].mean(),0)),None,None]
+    
+    report_columns = [f'Mean read depth',
+                      f'% of successful primer-pairs\n(has at least 10 amplicons across all samples)',
+                      f'# of primer pairs with less than 10 amplicons mapping\nover total primer-pairs']
+    report_df.columns = report_columns
+    
+    report_df.to_csv(f'{report_file}.csv') 
+    
 def main():
 
     args = parse_argument()
@@ -390,13 +443,17 @@ def main():
     raw_df = df.sum() #total abundance all high quality seqs
     raw_df.drop(['seq'], inplace=True)
     raw_df = split_samle_primer(raw_df, get_column_list(raw_df), sample_list, raw_idx)
-    # print (raw_df.mean(axis=1))
-    # print (raw_df.mean(axis=1).mean())
-    raw_df['mean'] = raw_df.mean(axis=1)
-    raw_df.to_csv('raw_df', sep='\t') # save as a tsv file
+
+    #generate report for SPHL
+    if args.report_file:
+        create_report(raw_df, args.report_file)
+
+    if logger.isEnabledFor(logging.DEBUG):
+        raw_df['mean'] = raw_df.fillna(0).mean(axis=1)
+        raw_df.to_csv('raw_df', sep='\t') # save as a tsv file
 
     #creat the blast df, to blast filtering all sequences
-    blast_df = create_blast_df(args.blast, args.fasta, args.reference, 100)
+    blast_df = create_blast_df(args.blast, args.fasta, args.reference, 100, args.metasheet)
     # mapping dictionary between sample and isolate
     map_dict = map_sample_to_isolate(args.map_file)
     # if the mapping is required
@@ -411,13 +468,12 @@ def main():
     df = merge_count_blast(df, primer_list, blast_df)
     new_df = df.sum()
     new_df = split_samle_primer(new_df, get_column_list(new_df), sample_list, raw_idx)
-    # print (new_df.mean(axis=1))
-    # print (new_df.mean(axis=1).mean())
-    new_df['mean'] = new_df.mean(axis=1)
-    new_df.to_csv('new_df', sep='\t') # save as a tsv file
+    
+    if logger.isEnabledFor(logging.DEBUG):
+        new_df['mean'] = new_df.fillna(0).mean(axis=1)
+        new_df.to_csv('new_df', sep='\t') # save as a tsv file
 
     new_df_t = new_df.T
-
     df_dict = build_confusion_matrix(sample_list, args.reference, new_df_t, map_dict)
     df = pd.DataFrame.from_dict(df_dict, orient='index')
     df.columns = ['TP','FP','FN','TN']
@@ -430,6 +486,5 @@ def main():
 
     df.to_csv(args.output, sep='\t')
 
-    
 if __name__ == "__main__":
     main()
