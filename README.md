@@ -20,10 +20,11 @@ This is a pipeline that performs quality control analysis on highly-multiplexed 
 The tool takes a user-configurable settings file and multiplexed fastq files (gzipped or not), and executes a custom workflow using Mothur.
 It provides 2 main outputs of interest: 
 
-1. A **fasta** file containing the high-quality sequences after cleaning
+1. A **fasta** file containing the high-quality representative unique sequences after cleaning
+2. A **count_table** file containing the abundance information of the above fasta file
 2. A **summary** file containing summary statistics of reads after each step of the workflow
 
-For more information and to see visualizations describing the workflow, see [this folder containing visuals](https://github.com/jessicarowell/HMAS-QC-Pipeline/tree/master/visuals).
+For more information and to see visualizations describing the workflow, see [this folder containing visuals](https://github.com/ncezid-biome/HMAS-QC-Pipeline/tree/master/visuals).
 
 This pipeline has been designed and tested under Linux CentOS and Ubuntu platforms.  It has not been tested under Windows.
 
@@ -35,7 +36,7 @@ This pipeline has been designed and tested under Linux CentOS and Ubuntu platfor
 
 	Note: The easiest way to make sure Mothur is on your path is to download the zip file and unzip it in your local bin directory.
         For CDC users, installing it yourself this way is better than using the module version of Mothur.  That version has not been tested here.
-        The last version of Mothur that has been tested is 1.46.0. (the more recent version has tweaks that's not fit ino the current pipeline) 
+        The last version of Mothur that has been tested is ***1.46.0.*** (the more recent version has tweaks that does not fit ino the current pipeline) 
 
 3. You must have the mothur_py package installed.  Read more about mothur-py [here](https://pypi.org/project/mothur-py/).
 	`pip install mothur-py`
