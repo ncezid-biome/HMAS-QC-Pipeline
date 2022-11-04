@@ -46,6 +46,50 @@ def get_oligo_primer_dict():
 
     return primer_dict
 
+def sample_primer_df_to_dict(df):
+    '''
+    this method converts a 2 column('sample', 'primer') dataframe into a dictionary, where
+    sample is the key and primer is the value for that key
+
+    sample    primer
+    08_0810   OG0000294primerGroup8
+    08_0810   OG0000296primerGroup7
+    AR_0409   OG0000297primerGroup3
+    AR_0409   OG0000298primerGroup4
+
+    Parameters
+    ----------
+    df: the 2 columns dataframe
+
+    Returns a dictionary
+    {'08_0810':'OG0000294primerGroup8,OG0000296primerGroup7','AR_0409':'OG0000297primerGroup3,OG0000298primerGroup4'}
+
+    '''
+    df['primer'] = df.groupby(['sample'])['primer'].transform(lambda x: ','.join(x))
+    return dict(df.values)
+
+def map_sample_to_primer(cvs_file):
+    '''
+    this method maps all the predicted primer pairs that are related to a sample
+    
+    Parameters
+    ----------
+    cvs_file: the path to the cvs file (metalsheet table, which should have 3 columns:
+    #seq_id, primer, sample)
+
+    Returns a dictionary {sample:[list of primers]}
+    
+    '''
+    if cvs_file:
+        df = pd.read_csv(cvs_file)
+        df = df[['sample','primer']] # prep the df to be able to use sample_primer_df_to_dict
+        sample_primer_dict = sample_primer_df_to_dict(df)
+        # convert the dictionary value into a list
+        new_sample_primer_dict = {key:value.split(',') for key,value in sample_primer_dict.items() if value}
+        
+        return new_sample_primer_dict
+    
+    
 def cvs_to_dict(cvs_file):
     '''
     This method reads a standard cvs file, uses the 1st column as index to creates a dataframe
@@ -334,7 +378,7 @@ def getCountValue(args):
             print (df.loc[seq,f'{sample}.{primer}'])
         print ("\n")
 
-def build_confusion_matrix(sample_list, reference, new_df_t, map_dict):
+def build_confusion_matrix(sample_list, reference, new_df_t, map_dict, meta_sheet):
     '''
     this method flattens a list of sets into one single list and generate the occurrence count for each item
     as a dictionary
@@ -352,15 +396,22 @@ def build_confusion_matrix(sample_list, reference, new_df_t, map_dict):
     '''
     df_dict = {}
     for key in sample_list:
-        primer_dict = get_oligo_primer_dict()
-        if map_dict and (key in map_dict):
-            primer_list = run_grep.get_primers_for_sample_design_fasta(reference, map_dict[key][0])
+        primer_dict = get_oligo_primer_dict() # our full 2461 primer list
+        # dictionary of sample:list_primer(predicted)
+        sample_to_primer_dict = map_sample_to_primer(meta_sheet)
+        primer_list = [] # hold the predicted primers for the sample
+        if map_dict and (key in map_dict): # map_dict is for mapping sample to isolates
             # Gut_10_3_1  Typhimurium	ParatyphiA might have 2 isolates
-            map_size = len(map_dict[key])
-            for i in range(1, map_size):
-                primer_list.extend(run_grep.get_primers_for_sample_design_fasta(reference, map_dict[key][i]))
+            for i in range(len(map_dict[key])):
+                if not sample_to_primer_dict:
+                    primer_list.extend(run_grep.get_primers_for_sample_design_fasta(reference, map_dict[key][i]))
+                elif map_dict[key][i] in sample_to_primer_dict:
+                    primer_list.extend(sample_to_primer_dict[map_dict[key][i]])
         else:
-            primer_list = run_grep.get_primers_for_sample_design_fasta(reference, key)
+            if not sample_to_primer_dict:
+                primer_list = run_grep.get_primers_for_sample_design_fasta(reference, key)
+            elif key in sample_to_primer_dict:
+                primer_list = sample_to_primer_dict[key]
         primer_list = list(set(primer_dict.keys() & set(primer_list)))
         # set value to 1 (default is 0) for all predicted primers
         primer_dict.update(zip(primer_list,[1]*len(primer_list)))
@@ -474,7 +525,7 @@ def main():
         new_df.to_csv('new_df', sep='\t') # save as a tsv file
 
     new_df_t = new_df.T
-    df_dict = build_confusion_matrix(sample_list, args.reference, new_df_t, map_dict)
+    df_dict = build_confusion_matrix(sample_list, args.reference, new_df_t, map_dict, args.metasheet)
     df = pd.DataFrame.from_dict(df_dict, orient='index')
     df.columns = ['TP','FP','FN','TN']
     df['sensitivity (TP/P)'] = df['TP']/(df['TP'] + df['FN'])
