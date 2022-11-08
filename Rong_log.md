@@ -1,8 +1,10 @@
-# Rong's daily log
+# Rong's log
 
-A place where Rong logs his *significant* daily code activity 
+A place where Rong logs his *significant* code activity and comments
 
 Started by [@jinfinance](https://github.com/jinfinance)
+
+*~~11/4/2022~~*
 
 updated the **parse_count_table_confusion_matrix.py** script, so that:  
 >
@@ -37,3 +39,40 @@ updated the **parse_count_table_confusion_matrix.py** script, so that:
 >
 >  ` -o confusion_matrix_2014K_0324_08_0900_new027 `
 >
+
+---
+---
+
+*~~11/8/2022~~*
+
+**Salmonella isolates WGS assembly**  
+
+
+Wrote a script `run_SRA_assembly.py` which takes a 2 column (tab delimited) plain file, 1st column is the sample name, 2nd column is the SRA number. It downloads all SRA files in the list and call shovill for the assembly.
+
+The shovill program is from the loaded module at Scicomp, and I choose the skesa as the assembler, which currently is of version ***v2.3***. 
+
+I ran it with the following 6 Salmonella isolates substitutes:  
+
+2014K-0979  
+2014K-0527  
+~~2013K-1067~~  
+2014K-0421  
+2016K-0167  
+2016K-0878  
+2013K-1828   
+*~~AM39224 (AR-0409)~~*
+
+I was not able to find the SRA files for *2013K-1067* and *AR-0409*, and Grant didn't know where to find the WGS for them either.
+
+Except for *2013K-1067*, NCBI already has the WGS assembly there. So it's probably not necessary to download the SRA reads and do the assembly ourselves.  And there are some difference between NCBI version of the assembly and ours.  They also use skesa for the assembly, but they used the version ***v2.2***.  Not sure if that made the difference. For example: sample 2016K-0878, their assembly has ***27*** contigs while our version has ***25*** contigs
+
+[Salmonella enterica strain 2016K-0878, whole genome shotgun sequencing project](https://www.ncbi.nlm.nih.gov/nuccore/AAEFQS000000000)  
+
+***note***  
+shovill sometimes would freeze for no obvious reason, without any apparent errors. I set a 10 minutes' timeout in the script. If that ever happens, it will be necessary to re-run the script again with those affected samples/sra files  
+
+---
+---
+
+
