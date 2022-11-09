@@ -76,3 +76,20 @@ shovill sometimes would freeze for no obvious reason, without any apparent error
 ---
 
 
+*~~11/9/2022~~*  
+Ran `extract_amplicon_from_primersearch_output.py` to generate the extracted amplicon sequences of those 6 isolate WGS files from yesterday.  
+
+
+>  ` python3 ~/HMAS_QC_Pipeline/extract_amplicon_from_primersearch_output.py  `  
+>  ` -s 2013K-1828_assembled.fa  `  
+>  ` -p ~/HMAS_QC_Pipeline/Salmonella-reformatted-primers-list-psearch.txt`  
+
+***note***  
+`extract_amplicon_from_primersearch_output.py` processes one WGS a time. If we have a lot of WGS to extract amplicon sequence from, we need to write a simple shell script to do it efficiently.  
+
+All 6 assemblies and their extracted amplicon sequences are under:  
+>  `/scicomp/groups/OID/NCEZID/DFWED/EDLB/projects/CIMS/Salmonella/T3Pio/Juno_Pilot/8isolate_subs/`  
+
+---
+---  
+
