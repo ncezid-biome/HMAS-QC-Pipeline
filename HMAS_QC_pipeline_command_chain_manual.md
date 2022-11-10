@@ -87,5 +87,4 @@ Need to make sure that:
 >  `shovill -R1 SRR1616822_1.fastq -R2 SRR1616822_2.fastq `  
 >  `--outdir output_folder --assembler skesa --trim ON --cpus 30`  
 ***note***: the default spades assembler often throws out out of memory error to me  
-<br>  
 3. I have a [run_SRA_assembly.py script](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/helper_scripts/run_SRA_assembly.py), which can automate things a bit, if you already have a list of SRA files to download and assemble.
