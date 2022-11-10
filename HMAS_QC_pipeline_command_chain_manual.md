@@ -79,13 +79,13 @@ Need to make sure that:
 - Installation   
 `wget --output-document sratoolkit.tar.gz https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-ubuntu64.tar.gz`  
 -  Configure and set it up correctly  
--  fasterq-dump --split-files SRR_file (Scicomp currently has fasterq-dump installed already, so you can skip the first 2 steps )  
-<br>
-2. Use shovill to assemble  
+-  fasterq-dump --split-files SRR_file (Scicomp currently has fasterq-dump installed already, so you can skip the first 2 steps )    
+2. Use shovill to assemble   
 -  ml shovill 
 -  this depends, but might need to switch to home folder to use shovill (I sometimes got the folder permission issue when calling shovill)  
--  `shovill -R1 SRR1616822_1.fastq -R2 SRR1616822_2.fastq `  
-`--outdir output_folder --assembler skesa --trim ON --cpus 30`  
+-  run shovill  
+>  `shovill -R1 SRR1616822_1.fastq -R2 SRR1616822_2.fastq `  
+>  `--outdir output_folder --assembler skesa --trim ON --cpus 30`  
 ***note***: the default spades assembler often throws out out of memory error to me  
-<br>
-3. I have a [`run_SRA_assembly.py script`](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/helper_scripts/run_SRA_assembly.py), which can automate things a bit, if you already have a list of SRA files to download and assemble.
+<br>  
+3. I have a [run_SRA_assembly.py script](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/helper_scripts/run_SRA_assembly.py), which can automate things a bit, if you already have a list of SRA files to download and assemble.
