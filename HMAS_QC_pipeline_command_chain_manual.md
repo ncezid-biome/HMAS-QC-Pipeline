@@ -61,12 +61,13 @@ Need to make sure that:
 <br>  
 
 >  ` python3 extract_amplicon_from_primersearch_output.py  `  
->  ` -s isolate_WGS.fasta  `  
+>  ` -s isolate_WGS.fasta (or directory name, which holds an array of fasta files) `  
 >  ` -p primers-list-psearch.txt`  
 
 ***note***  
-1. &nbsp;`extract_amplicon_from_primersearch_output.py` processes one WGS a time. If we have a lot of WGS to extract amplicon sequence from, we need to write a simple shell script to do it efficiently.  
-2. The primer list has to be in a specific format (tab delimited plain file): total 3 columns, the 1st column is primer name, the 2nd column is forward primer sequence, and the 3rd column is reverse primer sequence. For example: [psearch_primer_list](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/Salmonella-reformatted-primers-list-psearch.txt)  
+1. &nbsp;`extract_amplicon_from_primersearch_output.py` will check if the -s argument passed in is a file or a directory. If it's a directory it will grab all the files in the directory (assuming all the files are fasta sequence files).  
+2. The primer list has to be in a specific format (tab delimited plain file): total 3 columns, the 1st column is primer name, the 2nd column is forward primer sequence, and the 3rd column is reverse primer sequence. For example: [psearch_primer_list](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/Salmonella-reformatted-primers-list-psearch.txt) 
+3. the script assumes **EMBOSS/6.4.0** is already on path.
 
 <br>
 

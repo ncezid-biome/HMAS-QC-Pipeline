@@ -51,6 +51,9 @@ import subprocess
 import shutil
 import sys
 import pandas as pd
+import os
+import glob
+import concurrent.futures
 
 amplicon_file_extension = '_extractedAmplicons.fasta'
 non_match_primer_file_extension = '_not_match_primers.txt'
@@ -58,6 +61,7 @@ metasheet_file_extension = '_metasheet.csv'
 metasheet_table_columns = ['seq_id', 'primer', 'sample']
 mismatch_percent = 6
 max_amplicon_len = 375
+max_seqid_len = 50
 
 
 def runPrimerSearch(seq_file, primer_file, output_file):
@@ -101,7 +105,7 @@ def extractAmpliconLength(amplimer_length_line):
         amplicon_length = int(matchArray[0])
     return amplicon_length
 
-def parsePrimerSearch(primersearch_results, full_length_dict):
+def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
     # parse primersearch results file
     with open(primersearch_results, 'r') as inputFile:
         extracted_amplicon_list = []  # empty list of extracted amplicon sequence
@@ -140,12 +144,14 @@ def parsePrimerSearch(primersearch_results, full_length_dict):
                         
                         full_length_record = full_length_dict[seq_id]  # created SeqRecord from amplicon and add to list
                         extracted_sequence = full_length_record.seq[startIndex:endIndex]
-                        ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{seq_id}')
+                        # ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{seq_id}') 
+                        ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{file_base}'[:max_seqid_len])
                         extracted_amplicon_list.append(ampliconRec)
                         
-                        seqid_list.append(f'{primer_name}-{seq_id}')
+                        seqid_list.append(f'{primer_name}-{file_base}'[:max_seqid_len])
                         seqid_primer_list.append(primer_name)
-                        seqid_isolate_list.append(seq_id)
+                        # seqid_isolate_list.append(seq_id)
+                        seqid_isolate_list.append(file_base)
                         
                         not_match_primer_list.pop() #remove this matched primers from the list
 
@@ -163,6 +169,7 @@ def parse_argument():
     # note
     # usage: python3 extract_amplicon_from_primersearch_output.py 
     #       -s fastaToParse.fasta -p primers_list_file
+    # 02/10/2023 -s now can also be a directory which holds all the assemblies files
     parser = argparse.ArgumentParser(prog = 'extract_amplicon_from_primersearch_output.py')
     # parser.add_argument('-p', '--primersearch', metavar = '', required = True, help = 'Specify primersearch output')
     parser.add_argument('-p', '--primers', metavar = '', required = True, help = 'Specify primers list file')
@@ -174,30 +181,46 @@ def parse_argument():
 if __name__ == "__main__":
     
     args = parse_argument()
-    fastaToParse = args.sequence  # fasta file of nucleotide sequences to parse
-    file_base = Path(fastaToParse).stem # basename of the fasta file without .fasta extension
+    # fasta file of nucleotide sequences to parse
+    # 02/10/2023  it now can also a directory name
+    fastaToParse = args.sequence  
     primerlist_file = args.primers
     
-    primersearch_results = runPrimerSearch(fastaToParse, primerlist_file, f"{file_base}.ps")
-    if primersearch_results is None:
-        print (f"primersearch does not generate any results ! exitting")
-        sys.exit()
-         
-    # read full-length fasta sequences into dict of SeqrRecords with key = record.id
-    full_length_dict = SeqIO.to_dict(SeqIO.parse(fastaToParse, "fasta"))
-    extracted_amplicon_list, not_match_primer_list, _3lists_for_df \
-        = parsePrimerSearch(primersearch_results, full_length_dict)
-    
-    # not using SeqIO.write because it automatically wraps sequence 60bp per line
-    #SeqIO.write(extracted_amplicon_list, ampliconOutputHandle, "fasta")
-    with open(f'{file_base}{amplicon_file_extension}', 'w') as f:
-        seqs_list = [f">{rec.id}\n{rec.seq}" for rec in extracted_amplicon_list]
-        f.write('\n'.join(seqs_list) + '\n')
-    
-    with open(f'{file_base}{non_match_primer_file_extension}', 'w') as f:
-        f.write('\n'.join(not_match_primer_list) + '\n')
+    fasta_list = [] #list of all the sequence files to parse
+    if os.path.isdir(fastaToParse):
+        fasta_list.extend(list(glob.glob(f"{fastaToParse}/*")))
+    else:
+        fasta_list.append(fastaToParse)
         
+        
+    def concurrent_work(fasta_file):
+        
+        file_base = Path(fasta_file).stem # basename of the fasta file without .fasta extension
+        primersearch_results = runPrimerSearch(fasta_file, primerlist_file, f"{file_base}.ps")
+        if primersearch_results is None:
+            print (f"primersearch does not generate any results ! exitting")
+            sys.exit()
+            
+        # read full-length fasta sequences into dict of SeqrRecords with key = record.id
+        full_length_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
+        extracted_amplicon_list, not_match_primer_list, _3lists_for_df \
+            = parsePrimerSearch(primersearch_results, full_length_dict, file_base)
+        
+        # not using SeqIO.write because it automatically wraps sequence 60bp per line
+        #SeqIO.write(extracted_amplicon_list, ampliconOutputHandle, "fasta")
+        with open(f'{file_base}{amplicon_file_extension}', 'w') as f:
+            seqs_list = [f">{rec.id}\n{rec.seq}" for rec in extracted_amplicon_list]
+            f.write('\n'.join(seqs_list) + '\n')
+        
+        with open(f'{file_base}{non_match_primer_file_extension}', 'w') as f:
+            f.write('\n'.join(not_match_primer_list) + '\n')
+        
+        
+    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
+        results = executor.map(concurrent_work, fasta_list)
+  
     # generate the metasheet table 
-    df = pd.DataFrame(_3lists_for_df).T
-    df.columns = metasheet_table_columns
-    df.to_csv(f"{file_base}{metasheet_file_extension}", index=False)
+    # 02/10/2023  comment out for now, metasheet table is usually used with confusion_matrix
+    # df = pd.DataFrame(_3lists_for_df).T
+    # df.columns = metasheet_table_columns
+    # df.to_csv(f"{file_base}{metasheet_file_extension}", index=False)
