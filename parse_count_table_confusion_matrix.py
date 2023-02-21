@@ -1,31 +1,27 @@
 #!/usr/bin/env python3
 
 import argparse, os, sys
-from matplotlib.pyplot import axis
 import pandas as pd
 from pathlib import Path
 import logging
+from configparser import ConfigParser
 # importing scripts under helper_scripts folder
 # sys.path.insert(0,r'./helper_scripts')
 # assume HMAS_QC_Pipeline is under user's home folder
-sys.path.insert(0,f"{os.path.expanduser('~')}/HMAS_QC_Pipeline/helper_scripts")
-import run_blast as blast
-import utilities
-import settings
-import run_grep
+# sys.path.insert(0,f"{os.path.expanduser('~')}/HMAS_QC_Pipeline/helper_scripts")
+# import run_blast as blast
+# import utilities
+# import settings
+# import run_grep
+from helper_scripts import run_blast as blast
+from helper_scripts import utilities
+from helper_scripts import settings
+from helper_scripts import run_grep
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(settings.log_handler)
-
-# a list of control sample names
-# control_list = ['2013K_0676',
-#                 '2013K_1246',
-#                 '2014K_0979',
-#                 '2016K_0878',
-#                 'Blank_IRP1',
-#                 'Blank_IRP2',
-#                 'Water1']
 
 # a list of control samples, which we will exclude from the analysis
 # control_list = ['2014K_0979',
@@ -68,20 +64,20 @@ def sample_primer_df_to_dict(df):
     df['primer'] = df.groupby(['sample'])['primer'].transform(lambda x: ','.join(x))
     return dict(df.values)
 
-def map_sample_to_primer(cvs_file):
+def map_sample_to_primer(csv_file):
     '''
-    this method maps all the predicted primer pairs that are related to a sample
+    this method maps all the predicted primer pairs to the sample they're related with
     
     Parameters
     ----------
-    cvs_file: the path to the cvs file (metalsheet table, which should have 3 columns:
+    csv_file: the path to the cvs file (metalsheet table, which should have 3 columns:
     #seq_id, primer, sample)
 
     Returns a dictionary {sample:[list of primers]}
     
     '''
-    if cvs_file:
-        df = pd.read_csv(cvs_file)
+    if csv_file:
+        df = pd.read_csv(csv_file)
         df = df[['sample','primer']] # prep the df to be able to use sample_primer_df_to_dict
         sample_primer_dict = sample_primer_df_to_dict(df)
         # convert the dictionary value into a list
@@ -90,9 +86,9 @@ def map_sample_to_primer(cvs_file):
         return new_sample_primer_dict
     
     
-def cvs_to_dict(cvs_file):
+def csv_to_dict(csv_file):
     '''
-    This method reads a standard cvs file, uses the 1st column as index to creates a dataframe
+    This method reads a standard csv file, uses the 1st column as index to creates a dataframe
     Then it converts the dataframe into a dictionary of dictionaries, with the index as key to 
     the first dictionary and column names of the dataframe as the keys for the 2nd dictionary(s)
     Ex.   this cvs file
@@ -109,17 +105,26 @@ def cvs_to_dict(cvs_file):
 
     Returns a dictionary of dictionaries
     '''
-    df = pd.read_csv(cvs_file, index_col=0)
+    df = pd.read_csv(csv_file, index_col=0)
     map_dict = df.T.to_dict()
 
     return map_dict
 
-# this method reads mapping file (sample-to-isolate) in csv format
-# and return a dictionary of it 
-# key: sample (String)
-# value: a list of corresponding isolates 
-# (the list has no None value in it, and it's ensured to be a non-empty list)
+
 def map_sample_to_isolate(map_file):
+    '''
+    this method reads mapping file (sample-to-isolate) in csv format and return a dictionary of it 
+    key: sample (String)
+    value: a list of corresponding isolates 
+    (the list has no None value in it, and it's ensured to be a non-empty list)
+    
+    Parameters
+    ----------
+    map_file: the path to the mapping csv file 
+
+    Returns a dictionary
+    
+    '''
 
     if map_file:
         df = pd.read_csv(map_file, index_col=0)
@@ -133,11 +138,19 @@ def map_sample_to_isolate(map_file):
         return new_map_dict
     
 
-# this method will reverse the above sample-to-isolate dictionary, and 
-# will generate a isolate-to-sample dictionary
-# key: isolate (String)
-# value: a list of corresponding samples
 def rev_map_isolate_to_sample(map_dict):
+    '''
+    this method will reverse the above sample-to-isolate dictionary, and will generate a isolate-to-sample dictionary
+    key: isolate (String)
+    value: a list of corresponding samples 
+    
+    Parameters
+    ----------
+    map_dict: the mapping dictionary (sample-to-isolates) 
+
+    Returns a dictionary
+    
+    '''
     rev_map_dict = {}
     for key in map_dict:
         isolates = map_dict[key]
@@ -178,25 +191,18 @@ def create_blast_df(blast_file, query_fasta, reference, max_hit, metasheet_file)
     blast_df = pd.read_csv(blast_file, sep='\t', names=bcolnames)
     
     # de-couple the formatting 
-    # use the cvs_to_dict() fuction to get the dict
+    # use the csv_to_dict() fuction to get the dict
     # '>OG0000294-OG0000294primerGroup8-ParatyphiA rc' - the seq_id will be a key of a dictionary
     # metasheet is a 3 column csv file, which contains explicit information of 
     # which primer pair and sample does an amplicon sequence correspond to. For example:
     # seq_id,primer,sample
     # OG0002941-OG0002941primerGroup0-2014K_0324,OG0002941primerGroup0,2014K_0324
-    if metasheet_file:
-        map_dict = cvs_to_dict(metasheet_file)
-        blast_df['primer_new'] = [ map_dict[seq_id]['primer'] for seq_id in blast_df['primer']]
-        blast_df['sample'] = [ map_dict[seq_id]['sample'] for seq_id in blast_df['primer']]
-        blast_df.drop(columns='primer', inplace=True)
-        blast_df.rename(columns={'primer_new':'primer'}, inplace=True)
-        blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
-    else:
-        # '>OG0000294-OG0000294primerGroup8-ParatyphiA rc'  remove the ' rc' part
-        blast_df['primer'] = blast_df['primer'].str.split().str[0]
-        blast_df['sample'] = blast_df['primer'].str.split('-').str[2]
-        blast_df['primer'] = blast_df['primer'].str.split('-').str[1]
-        blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
+    map_dict = csv_to_dict(metasheet_file)
+    blast_df['primer_new'] = [ map_dict[seq_id]['primer'] for seq_id in blast_df['primer']]
+    blast_df['sample'] = [ map_dict[seq_id]['sample'] for seq_id in blast_df['primer']]
+    blast_df.drop(columns='primer', inplace=True)
+    blast_df.rename(columns={'primer_new':'primer'}, inplace=True)
+    blast_df['sample_primer'] = blast_df['sample'] + '.' + blast_df['primer']
 
     return blast_df
 
@@ -228,7 +234,7 @@ def blast_map_sample_to_isolate(blast_df, map_dict):
 def merge_count_blast(df, primer_list, blast_df):
     '''
     this method filters the original full-format count table (below), so that seqs 
-    all have matches in blast result and their pident == 100 & cov >= 90
+    all have matches in blast result and their pident == 100 & cov >= 90 (or any value in the settings.py)
 
     Rep_Seq Sam1_PP1    Sam2_PP1    Sam1_PP2    Sam2_PP2
     Seq1    10  42  0   0
@@ -240,7 +246,6 @@ def merge_count_blast(df, primer_list, blast_df):
     df: the original count table dataframe
     primer_list: the list of targeted sample.primer ['Sam1_PP1', 'Sam1_PP2'] etc.
     blast_df: blast result dataframe
-    map_dict: mapping dictionary between sample and isolate name 
 
     Returns the filtered dataframe
 
@@ -252,6 +257,7 @@ def merge_count_blast(df, primer_list, blast_df):
     df = df.astype({'count':int})
     df['sample_primer'] = df['sample_primer_orig']
 
+    #1.2 filter and merge
     blast_df = blast_df[(blast_df['pident'] >= settings.PIDENT) & \
                         (blast_df['len_aln']/blast_df['subj_len'] >= settings.P_ALIGN) & \
                         (blast_df['cov'] >= settings.PCOV)]
@@ -327,19 +333,51 @@ def parse_argument():
     # the script can be run as: python3 parse_count_table.py -c juno.final.full.count_table -s M347-21-026-15sample.csv
     #                               -f juno.final.fasta -r juno_design_primers.fasta
     # - b / - f / - r are optional
+    # parser = argparse.ArgumentParser(prog = 'pasr_count_table.py')
+    # parser.add_argument('-c', '--count_file', metavar = '', required = True, help = 'Specify count table')
+    # parser.add_argument('-s', '--sample_file', metavar = '', required = True, help = 'Specify sample list file')
+    # parser.add_argument('-o', '--output', metavar = '', required = False, help = 'Specify output confusion-matrix file')
+    # parser.add_argument('-b', '--blast', metavar = '', required = False, help = 'Specify blast result file')
+    # parser.add_argument('-f', '--fasta', metavar = '', required = False, help = 'Specify fasta file output from HMAS QC pipeline (should have "final" in the filename).')
+    # parser.add_argument('-r', '--reference', metavar = '', required = False, help = 'Specify fasta file containing the positive control targets.')
+    # parser.add_argument('-m', '--map_file', metavar = '', required = False, help = 'Specify mapping file')
+    # parser.add_argument('-e', '--metasheet', metavar = '', required = False, help = 'Specify metasheet csv file')
+    # parser.add_argument('-p', '--report_file', metavar = '', required = False, help = 'Specify report file name')
+
+    # return parser.parse_args()
+
     parser = argparse.ArgumentParser(prog = 'pasr_count_table.py')
-    parser.add_argument('-c', '--count_file', metavar = '', required = True, help = 'Specify count table')
-    parser.add_argument('-s', '--sample_file', metavar = '', required = True, help = 'Specify sample list file')
-    parser.add_argument('-o', '--output', metavar = '', required = False, help = 'Specify output confusion-matrix file')
-    parser.add_argument('-b', '--blast', metavar = '', required = False, help = 'Specify blast result file')
-    parser.add_argument('-f', '--fasta', metavar = '', required = False, help = 'Specify fasta file output from HMAS QC pipeline (should have "final" in the filename).')
-    parser.add_argument('-r', '--reference', metavar = '', required = False, help = 'Specify fasta file containing the positive control targets.')
-    parser.add_argument('-m', '--map_file', metavar = '', required = False, help = 'Specify mapping file')
-    parser.add_argument('-e', '--metasheet', metavar = '', required = False, help = 'Specify metasheet csv file')
-    parser.add_argument('-p', '--report_file', metavar = '', required = False, help = 'Specify report file name')
+    parser.add_argument('-c', '--config_file', metavar = '', required = True, help = 'Specify configure file')
+    config = ConfigParser()
+    config.read(parser.parse_args().config_file)
+    
+    def dirFileExists(config,section_name,option_name):
+        """
+        Test if the option_name is in 'section_name' section and if it exists/readable
+        """
+        try:
+            path = config[section_name][option_name]
+            return os.path.exists(os.path.expanduser(path))
+        except (KeyError): #option_name is not in 'file_inputs' section
+            return False
+        
+    section = 'file_inputs' # we have only 1 section in the config file
+    req_option_list = ['count_table','unique_fasta','reference_fasta','sample_list','metasheet','mapping_file']
+    opt_option_list = ['output_file','report_file','logging_flag','blast_file']
 
-    return parser.parse_args()
-
+    args = {} # dictionary holding all the inputs
+    for option in req_option_list:
+        if dirFileExists(config,section,option):
+            args[option] = config[section][option]
+        else:
+            logger.error(f"{config[section][option]} does not exist")
+            print (f"ERROR! {config[section][option]} does not exist")
+            sys.exit(1)
+    
+    for option in opt_option_list:
+        args[option] = config[section][option]
+        
+    return args
 
 # helper method to split the column names, sort it
 def get_column_list(df):
@@ -349,36 +387,7 @@ def get_column_list(df):
     return column_list
 
 
-# print out count value for specific seq / sample_primer combo in the count_table
-def getCountValue(args):
-    # args = parse_argument()
-    df = read_count_table(args.count_file)
-    df.set_index('Representative_Sequence', inplace=True)
-
-    seqs = ['M03235_53_000000000-K394R_1_2114_24886_10548',
-            'M03235_53_000000000-K394R_1_2110_21268_3180',
-            'M03235_53_000000000-K394R_1_1103_24702_11865',
-            'M03235_53_000000000-K394R_1_2114_11940_17547',
-            'M03235_53_000000000-K394R_1_1110_10863_14479',
-            'M03235_53_000000000-K394R_1_2113_25175_24045']
-
-    samples = ['2013K_1153',
-                '08_0810',
-                '2010K_1649',
-                '2013K_1153',
-                '2015K_0074',
-                '2016K_0167']
-    
-    primer = 'OG0000335primerGroup4'
-
-    for sample in samples:
-        # print (sample)
-        for seq in seqs:
-            # print (seq)
-            print (df.loc[seq,f'{sample}.{primer}'])
-        print ("\n")
-
-def build_confusion_matrix(sample_list, reference, new_df_t, map_dict, meta_sheet):
+def build_confusion_matrix(sample_list, new_df_t, map_dict, meta_sheet):
     '''
     this method flattens a list of sets into one single list and generate the occurrence count for each item
     as a dictionary
@@ -386,7 +395,6 @@ def build_confusion_matrix(sample_list, reference, new_df_t, map_dict, meta_shee
     Parameters
     ----------
     sample_list: a list of all samples in the data set
-    reference: the reference (design) fasta file for amplicons
     new_df_t: the transformed (and blast filtered) dataframe (row: primers, column: samples)
     map_dict: mapping dictionary between sample and isolate name 
 
@@ -400,18 +408,21 @@ def build_confusion_matrix(sample_list, reference, new_df_t, map_dict, meta_shee
         # dictionary of sample:list_primer(predicted)
         sample_to_primer_dict = map_sample_to_primer(meta_sheet)
         primer_list = [] # hold the predicted primers for the sample
-        if map_dict and (key in map_dict): # map_dict is for mapping sample to isolates
+        
+        
+        
+        # if map_dict and (key in map_dict): # map_dict is for mapping sample to isolates
+        if key in map_dict:
             # Gut_10_3_1  Typhimurium	ParatyphiA might have 2 isolates
             for i in range(len(map_dict[key])):
-                if not sample_to_primer_dict:
-                    primer_list.extend(run_grep.get_primers_for_sample_design_fasta(reference, map_dict[key][i]))
-                elif map_dict[key][i] in sample_to_primer_dict:
+                if map_dict[key][i] in sample_to_primer_dict:
                     primer_list.extend(sample_to_primer_dict[map_dict[key][i]])
+                else:
+                    logger.info(f"WARNING: {map_dict[key][i]} can't be found in the metasheet ")
         else:
-            if not sample_to_primer_dict:
-                primer_list = run_grep.get_primers_for_sample_design_fasta(reference, key)
-            elif key in sample_to_primer_dict:
-                primer_list = sample_to_primer_dict[key]
+            logger.info(f"WARNING: {key} can't be found in the sample-isolates mapping file")
+                    
+                    
         primer_list = list(set(primer_dict.keys() & set(primer_list)))
         # set value to 1 (default is 0) for all predicted primers
         primer_dict.update(zip(primer_list,[1]*len(primer_list)))
@@ -474,11 +485,15 @@ def create_report(raw_df, report_file):
 def main():
 
     args = parse_argument()
+    
+    # default is INFO:20
+    if args['logging_flag']:
+        logger.setLevel(int(args['logging_flag']))
 
-    df = read_count_table(args.count_file)
+    df = read_count_table(args['count_table'])
 
     # read sample list file
-    sample_list = pd.read_csv(args.sample_file, names = ['sample'])['sample'].tolist()
+    sample_list = pd.read_csv(args['sample_list'], names = ['sample'])['sample'].tolist()
     sample_list = [sample for sample in sample_list if sample not in control_list]
     sample_list.sort(key=str.lower)
     print (sample_list)
@@ -496,36 +511,37 @@ def main():
     raw_df = split_samle_primer(raw_df, get_column_list(raw_df), sample_list, raw_idx)
 
     #generate report for SPHL
-    if args.report_file:
-        create_report(raw_df, args.report_file)
+    if args['report_file']:
+        create_report(raw_df, args['report_file'])
 
+    #print out raw amplicon sequence abundance info 
     if logger.isEnabledFor(logging.DEBUG):
         raw_df['mean'] = raw_df.fillna(0).mean(axis=1)
         raw_df.to_csv('raw_df', sep='\t') # save as a tsv file
 
     #creat the blast df, to blast filtering all sequences
-    blast_df = create_blast_df(args.blast, args.fasta, args.reference, 100, args.metasheet)
+    blast_df = create_blast_df(args['blast_file'], args['unique_fasta'], args['reference_fasta'], 100, args['metasheet'])
     # mapping dictionary between sample and isolate
-    map_dict = map_sample_to_isolate(args.map_file)
-    # if the mapping is required
-    if map_dict:
-        # create a reverse mapping between isolate and samples
-        # faster this way
-        rev_map_dict = rev_map_isolate_to_sample(map_dict)
-        # create a new blast df based on the above mapping
-        blast_df = blast_map_sample_to_isolate(blast_df, rev_map_dict)
+    map_dict = map_sample_to_isolate(args['mapping_file'])
+    
+    # mapping (samples-isolates) is required on 02/15/2023
+    # create a reverse mapping between isolate and samples, it runs faster this way
+    rev_map_dict = rev_map_isolate_to_sample(map_dict)
+    # create a new blast df based on the above mapping
+    blast_df = blast_map_sample_to_isolate(blast_df, rev_map_dict)
 
     # the filtered version of our count table df
     df = merge_count_blast(df, primer_list, blast_df)
     new_df = df.sum()
     new_df = split_samle_primer(new_df, get_column_list(new_df), sample_list, raw_idx)
     
+    #print out blast filtered amplicon sequence abundance info
     if logger.isEnabledFor(logging.DEBUG):
         new_df['mean'] = new_df.fillna(0).mean(axis=1)
-        new_df.to_csv('new_df', sep='\t') # save as a tsv file
+        new_df.to_csv('blast_df', sep='\t') # save as a tsv file
 
     new_df_t = new_df.T
-    df_dict = build_confusion_matrix(sample_list, args.reference, new_df_t, map_dict, args.metasheet)
+    df_dict = build_confusion_matrix(sample_list, new_df_t, map_dict, args['metasheet'])
     df = pd.DataFrame.from_dict(df_dict, orient='index')
     df.columns = ['TP','FP','FN','TN']
     df['sensitivity (TP/P)'] = df['TP']/(df['TP'] + df['FN'])
@@ -535,7 +551,9 @@ def main():
     df['ACC'] = (df['TP'] + df['TN'])/(df['TP'] + df['TN'] + df['FP'] + df['FN'])
     df['ACC'] = df['ACC'].apply(lambda x:round(x,3))
 
-    df.to_csv(args.output, sep='\t')
+    # if we need to generate output file
+    if args['output_file']:
+        df.to_csv(args['output_file'], sep='\t')
 
 if __name__ == "__main__":
     main()
