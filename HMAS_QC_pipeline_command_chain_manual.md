@@ -65,9 +65,10 @@ Need to make sure that:
 >  ` -p primers-list-psearch.txt`  
 
 ***note***  
-1. &nbsp;`extract_amplicon_from_primersearch_output.py` will check if the -s argument passed in is a file or a directory. If it's a directory it will grab all the files in the directory (assuming all the files are fasta sequence files).  
+1. &nbsp;`extract_amplicon_from_primersearch_output.py` will check if the -s argument passed in is a file or a directory. If it's a directory it will grab all the fasta files in the directory.  
 2. The primer list has to be in a specific format (tab delimited plain file): total 3 columns, the 1st column is primer name, the 2nd column is forward primer sequence, and the 3rd column is reverse primer sequence. For example: [psearch_primer_list](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/Salmonella-reformatted-primers-list-psearch.txt) 
-3. the script assumes **EMBOSS/6.4.0** is already on path.
+3. the script assumes **EMBOSS/6.4.0** is already on path. (`ml EMBOSS/6.4.0` if you're in scicomp space) 
+4. The outputs are saved in the **primersearch** folder under the working directory where the script is run.  
 
 <br>
 

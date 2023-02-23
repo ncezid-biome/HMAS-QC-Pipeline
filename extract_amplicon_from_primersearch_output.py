@@ -54,6 +54,7 @@ import pandas as pd
 import os
 import glob
 import concurrent.futures
+from pathlib import Path
 
 amplicon_file_extension = '_extractedAmplicons.fasta'
 non_match_primer_file_extension = '_not_match_primers.txt'
@@ -188,15 +189,16 @@ if __name__ == "__main__":
     
     fasta_list = [] #list of all the sequence files to parse
     if os.path.isdir(fastaToParse):
-        fasta_list.extend(list(glob.glob(f"{fastaToParse}/*")))
+        fasta_list.extend(list(glob.glob(f"{fastaToParse}/*.fasta")))
     else:
         fasta_list.append(fastaToParse)
         
-        
     def concurrent_work(fasta_file):
         
+        output_dir = f"{Path.cwd()}/primersearch/"
+        os.makedirs(output_dir, exist_ok=True)
         file_base = Path(fasta_file).stem # basename of the fasta file without .fasta extension
-        primersearch_results = runPrimerSearch(fasta_file, primerlist_file, f"{file_base}.ps")
+        primersearch_results = runPrimerSearch(fasta_file, primerlist_file, f"{output_dir}{file_base}.ps")
         if primersearch_results is None:
             print (f"primersearch does not generate any results ! exitting")
             sys.exit()
@@ -208,19 +210,18 @@ if __name__ == "__main__":
         
         # not using SeqIO.write because it automatically wraps sequence 60bp per line
         #SeqIO.write(extracted_amplicon_list, ampliconOutputHandle, "fasta")
-        with open(f'{file_base}{amplicon_file_extension}', 'w') as f:
+        with open(f'{output_dir}{file_base}{amplicon_file_extension}', 'w') as f:
             seqs_list = [f">{rec.id}\n{rec.seq}" for rec in extracted_amplicon_list]
             f.write('\n'.join(seqs_list) + '\n')
         
-        with open(f'{file_base}{non_match_primer_file_extension}', 'w') as f:
+        with open(f'{output_dir}{file_base}{non_match_primer_file_extension}', 'w') as f:
             f.write('\n'.join(not_match_primer_list) + '\n')
         
+        # generate the metasheet table 
+        # 02/10/2023  comment out for now, metasheet table is usually used with confusion_matrix
+        df = pd.DataFrame(_3lists_for_df).T
+        df.columns = metasheet_table_columns
+        df.to_csv(f"{output_dir}{file_base}{metasheet_file_extension}", index=False)
         
     with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
         results = executor.map(concurrent_work, fasta_list)
-  
-    # generate the metasheet table 
-    # 02/10/2023  comment out for now, metasheet table is usually used with confusion_matrix
-    # df = pd.DataFrame(_3lists_for_df).T
-    # df.columns = metasheet_table_columns
-    # df.to_csv(f"{file_base}{metasheet_file_extension}", index=False)
