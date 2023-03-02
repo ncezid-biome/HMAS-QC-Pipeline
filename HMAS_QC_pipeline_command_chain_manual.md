@@ -89,4 +89,35 @@ Need to make sure that:
 >  `shovill -R1 SRR1616822_1.fastq -R2 SRR1616822_2.fastq `  
 >  `--outdir output_folder --assembler skesa --trim ON --cpus 30`  
 ***note***: the default spades assembler often throws out out of memory error to me  
-3. I have a [run_SRA_assembly.py script](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/helper_scripts/run_SRA_assembly.py), which can automate things a bit, if you already have a list of SRA files to download and assemble.
+3. I have a [run_SRA_assembly.py script](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/helper_scripts/run_SRA_assembly.py), which automates the whole process, if you already have a list of SRA files to download and assemble.  
+
+
+>  ` python3   
+>  run_SRA_assembly.py  `  
+>  ` -i sra-list-file `    
+
+if there is any sra which fails in the process, the script will generate a `sra-list-file_fail_to_assemble`, which you can use to run the script again. The `sra-list-file` is a 2 column (tab delimited) text file: 
+ 
+>sample-1    sra-1  
+>sample-2    sra-2   
+
+<br>  
+
+---
+## generate pairwise difference matrix at all allele sites (primer pairs) for given sequence fasta files   
+<br>    
+
+### 4. Run analysis script
+### <br>
+
+>  `python3 pairwise_diff_matrix.py`  
+>  `-o output file`  
+>  `-d directory (which holds the fasta files)`  
+>  `-p (optional) oligos file (holds primer info)`  
+>  `-n (optional) numeric flag`
+<br>
+
+**note**:  
+1. the allele (primer pair) information is in the oligos file, although -p argument is optional, you will need to provide a link to an accessible valid oligos file (I have a default private oligos file in the script)    
+2. the sequence fasta file need to have the allele (primer) information in their sequence id. The script use that to locate the pair of sequences to compare.  
+3. if the -n (numeric flag) argument is turned on, a float value `(ex. 0.002)` is used instead of string `(ex. 5 / 2461)` in the output file
