@@ -2,8 +2,19 @@ import subprocess
 import argparse
 import concurrent.futures
 import pandas as pd
+from pathlib import Path
 
-TIMEOUT = 600 # time out at 10 minutes
+'''
+This script will read a file with list of SRA files, download and do the assembly with shovill.
+It will write out any SRA files that failed during the process, into a file with extension _fail_to_assemble,
+and you can re-run the script with that _fail_to_assemble file
+
+The file with SRA list is a plain 2 columns file (tab delimited)
+1st column is sample ID, 2nd column is SRA number, Ex.
+sample-1    SRR3322100
+sample_2    SRR2966870
+'''
+TIMEOUT = 3000 # time out at 3000 seconds
 
 def parse_argument():
     # note
@@ -29,16 +40,21 @@ def download_SRA_assemble(sample_sra):
                 f"fasterq-dump --split-files {sra} && " 
                 f"ml shovill && "
                 f"shovill -R1 {sra}_1.fastq -R2 {sra}_2.fastq --outdir . --force "
-                f"--assembler skesa --trim ON --cpus 10 > /dev/null 2>&1  && "
-                f"mv contigs.fa {sample}_assembled.fa")
+                f"--assembler skesa --trim ON --cpus 2 > /dev/null 2>&1  && "
+                f"mv contigs.fa ../{sample}_assembled.fasta")
                 
     # shovill sometimes will freeze for no obvious reasons, set timeout to 10 minutes before re-run
-    process = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=TIMEOUT)
+    try:
+        process = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        print (f"timed out after {TIMEOUT} seconds while in {sample} WGS assembling")
+        return ((sample, sra))
+    
     if process.returncode == 0:    
         print (f"{sample} WGS assembly is completed")
     else:
         print (f"error out while in {sample} WGS assembling")
-        print (process)
+        return ((sample, sra))
     
     
 if __name__ == "__main__":
@@ -51,3 +67,13 @@ if __name__ == "__main__":
         
     with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
             results = executor.map(download_SRA_assemble, sample_sras)
+            
+            # write out the sample/sra tha failed in the process
+            df_list = []
+            for result in results:
+                if result:
+                    df_list.append(list(result))
+                    
+            if len(df_list) >= 1:
+                df = pd.DataFrame(df_list)
+                df.to_csv(f"{Path(args.input_file).stem}_fail_to_assemble", sep='\t', index=False, header=False)
