@@ -29,10 +29,11 @@ oligos_file = r'/scicomp/home-pure/qtl7/test/hmas_test/024_demulx_0mis_data/data
 
 def parse_argument():
 
-    parser = argparse.ArgumentParser(prog = 'create_report.py')
+    parser = argparse.ArgumentParser(prog = 'pairwise_diff_matrix.py')
     parser.add_argument('-o', '--output', metavar = '', required = True, help = 'Specify output file')
     parser.add_argument('-d', '--directory', metavar = '', required = True, help = 'Specify fasta file directory')
     parser.add_argument('-p', '--primers', metavar = '', required = False, help = 'Specify oligos/(primer) file')
+    parser.add_argument('-n', '--numeric', metavar = '', required = False, help = 'turn on numeric flag')
     return parser.parse_args()
 
 #helper method to check if two sequences are different, returns True if they're different
@@ -45,7 +46,7 @@ def check_diff_by_primer(seq1,seq2):
     else:
         return True
     
-def pairwise_by_allprimers(file_dir, full_primer_list):
+def pairwise_by_allprimers(file_dir, full_primer_list, numeric_flag):
     '''
     this method performs pairwise difference checking on all the isolate fasta files in the given directory, over all 
     primers/allel sites.  Each cell is in the format of: # of difference / # of total common primers/allel sites
@@ -92,7 +93,10 @@ def pairwise_by_allprimers(file_dir, full_primer_list):
                     # else:
                     #     same_seq_list.append((primer,row_seq_list[0].seq, col_seq_list[0].seq))
 
-            row_list.append(f" {diff_count}/{total_primer}")
+            if numeric_flag:
+                row_list.append(f"{diff_count/total_primer:.3f}")
+            else:
+                row_list.append(f" {diff_count}/{total_primer}")
         df_list.append(row_list)
         
     # print (f"same seq count is: {len(same_seq_list)}")
@@ -140,7 +144,7 @@ if __name__ == "__main__":
         primers = utilities.Primers(oligos_file)
     full_primer_list = primers.pnames
     
-    df_list = pairwise_by_allprimers(args.directory, full_primer_list)
+    df_list = pairwise_by_allprimers(args.directory, full_primer_list, args.numeric)
     
     file_name_list = [Path(f).stem.split('.')[0] for f in glob.glob(f'{args.directory}/*.fasta') ]
     df = pd.DataFrame(df_list,columns=file_name_list)
