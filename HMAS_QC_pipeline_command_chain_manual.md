@@ -106,8 +106,6 @@ if there is any sra which fails in the process, the script will generate a `sra-
 ---
 ## generate pairwise difference matrix at all allele sites (primer pairs) for given sequence fasta files   
 <br>    
-
-### 4. Run analysis script
 ### <br>
 
 >  `python3 pairwise_diff_matrix.py`  
@@ -120,4 +118,24 @@ if there is any sra which fails in the process, the script will generate a `sra-
 **note**:  
 1. the allele (primer pair) information is in the oligos file, although -p argument is optional, you will need to provide a link to an accessible valid oligos file (I have a default private oligos file in the script)    
 2. the sequence fasta file need to have the allele (primer) information in their sequence id. The script use that to locate the pair of sequences to compare.  
-3. if the -n (numeric flag) argument is turned on, a float value `(ex. 0.002)` is used instead of string `(ex. 5 / 2461)` in the output file
+3. if the -n (numeric flag) argument is turned on, a float value `(ex. 0.002)` is used instead of string `(ex. 5 / 2461)` in the output file  
+
+<br>  
+
+---
+## NextFlow scripts to generate a subset of raw reads based on a subset of primers  
+<br>
+
+1. Run `create_subset_primers.py` to generate a subset of oligos file. It will generate 2 oligos file (*_subset_oligos file and *_remainder_oligos file, we will use that 'remainder_oligos' file)   
+  
+2. set up conda env for NextFlow:  
+    1. `conda env create -n hmas -f bin/hmas.yaml` (if you have mamba installed, use `mamba env create` instead for speed)   
+    2.  `conda activate hmas`    
+  
+
+3. Run NextFlow script as:   
+>  ` nextflow run hmas2_sampling_rawreads.nf  `  
+>  ` --oligo absolute_address_for_that_remainder_oligos file`    
+
+The outputs are all in the **output_sampling_rawreads** folder
+<br>   
