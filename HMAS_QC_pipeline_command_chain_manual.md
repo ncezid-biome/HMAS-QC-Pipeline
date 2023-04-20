@@ -42,16 +42,18 @@ Need to make sure that:
 ### <br>
 
 >  `python3 parse_count_table_confusion_matrix.py`  
->  `-c final.full.count_table (from Mothur QC)`  
->  `-f fina.fasta (from Mothur QC)`  
->  `-r reference.fasta`  
->  `-s sample.csv`  
->  `-o output.file`  
+>  ~~`-c final.full.count_table (from Mothur QC)`~~  
+>  ~~`-f fina.fasta (from Mothur QC)`~~  
+>  ~~`-r reference.fasta`~~    
+>  ~~`-s sample.csv`~~  
+>  ~~`-o output.file`~~    
 <br>
 
-**note**:  
-1. For up-to-date argument options, please check the script [parse_count_table_confusion_matrix.py, parse_argument()](https://github.com/ncezid-biome/HMAS-QC-Pipeline/blob/master/parse_count_table_confusion_matrix.py)    
-2. Need to have blast loaded: ml ncbi-blast+/LATEST  
+**note**:    
+1. Need to have blast loaded: ml ncbi-blast+/LATEST   
+2. **this script has been updated so that it will take one single argument of config.ini file, and are required arguments are set in that config.ini file, as:** 
+>  `python3 parse_count_table_confusion_matrix.py`  
+>  `-c config.ini`   
 
 <br>
 
@@ -113,12 +115,13 @@ if there is any sra which fails in the process, the script will generate a `sra-
 >  `-d directory (which holds the fasta files)`  
 >  `-p (optional) oligos file (holds primer info)`  
 >  `-n (optional) numeric flag`
+>  `-y (optional) diff only flag` 
 <br>
 
 **note**:  
 1. the allele (primer pair) information is in the oligos file, although -p argument is optional, you will need to provide a link to an accessible valid oligos file (I have a default private oligos file in the script)    
-2. the sequence fasta file need to have the allele (primer) information in their sequence id. The script use that to locate the pair of sequences to compare.  
-3. if the -n (numeric flag) argument is turned on, a float value `(ex. 0.002)` is used instead of string `(ex. 5 / 2461)` in the output file  
+2. the sequence fasta file need to have the allele (primer) information in their sequence id. The script use that to locate the pair of sequences to compare. This will not be an issue if you run our `extract_amplicon_from_primersearch_output.py`  
+3. if the -n (numeric flag) argument is turned on, a float value `(ex. 0.002)` is used instead of string `(ex. 5 / 2461)` in the output file. If instead the -y (diff only) argument is turned on, only the difference will be in the output `(ex. 5 in this case)`
 
 <br>  
 
@@ -139,3 +142,18 @@ if there is any sra which fails in the process, the script will generate a `sra-
 
 The outputs are all in the **output_sampling_rawreads** folder
 <br>   
+
+
+---
+## Generate confusion matrix after running hmas2 QC pipeline 
+<br>
+### <br>
+
+>  `python3 hmas2_confusion_matrix.py`  
+>  `-i hmas2 QC pipeline output folder` (which contains subfolders for each sample)    
+>  `-o output confusion_matrix file path`  
+>  `-r common reference file for all those samples`  
+>  `-m the metasheet file for all those samples`  (this is usually generated while extracting amplicon sequences)    
+>  `-p mapping file` (mapping between sample and isolates. A sample might has multiple isolates in it)  
+>  `-s the path for parse_count_table_confusion_matrix.py script` 
+<br>

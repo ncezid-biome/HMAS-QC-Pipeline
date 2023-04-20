@@ -12,11 +12,9 @@ from configparser import ConfigParser
 # import run_blast as blast
 # import utilities
 # import settings
-# import run_grep
 from helper_scripts import run_blast as blast
 from helper_scripts import utilities
 from helper_scripts import settings
-from helper_scripts import run_grep
 
 
 logger = logging.getLogger(__name__)
@@ -387,7 +385,7 @@ def get_column_list(df):
     return column_list
 
 
-def build_confusion_matrix(sample_list, new_df_t, map_dict, meta_sheet):
+def build_confusion_matrix(sample_list, raw_df_t, blast_df_t, map_dict, meta_sheet):
     '''
     this method flattens a list of sets into one single list and generate the occurrence count for each item
     as a dictionary
@@ -395,7 +393,7 @@ def build_confusion_matrix(sample_list, new_df_t, map_dict, meta_sheet):
     Parameters
     ----------
     sample_list: a list of all samples in the data set
-    new_df_t: the transformed (and blast filtered) dataframe (row: primers, column: samples)
+    blast_df_t: the transformed (and blast filtered) dataframe (row: primers, column: samples)
     map_dict: mapping dictionary between sample and isolate name 
 
     Returns
@@ -423,24 +421,33 @@ def build_confusion_matrix(sample_list, new_df_t, map_dict, meta_sheet):
             logger.info(f"WARNING: {key} can't be found in the sample-isolates mapping file")
                     
                     
-        primer_list = list(set(primer_dict.keys() & set(primer_list)))
-        # set value to 1 (default is 0) for all predicted primers
-        primer_dict.update(zip(primer_list,[1]*len(primer_list)))
-        pred_df = pd.DataFrame.from_dict(primer_dict, orient='index', columns=['prediction'])
-
-        sr_blast = new_df_t[key]
-        merged_df = pred_df.merge(sr_blast, how='left', left_index=True, right_index=True)
-        merged_df.rename(columns={key:'blast'}, inplace=True)
-
-        TN = merged_df[(merged_df['prediction'] == 0) & (merged_df['blast'].isna())].shape[0]
-        TP = merged_df[(merged_df['prediction'] > 0) & (merged_df['blast'] > 0)].shape[0]
-        FN = merged_df[(merged_df['prediction'] > 0) & ((merged_df['blast'] == 0) | (merged_df['blast'].isna()))].shape[0]
-        FP = merged_df[(merged_df['prediction'] == 0) & (merged_df['blast'] >= 0)].shape[0]
-        df_dict[key] = [TP,FP,FN,TN]
-
+        pred_pos_primer_set = set(primer_dict.keys()) & set(primer_list)
+        pred_neg_primer_set = set(primer_dict.keys()) - pred_pos_primer_set
+        
+        obs_pos_primer_set = set(raw_df_t[key].dropna().index.tolist())
+        obs_neg_primer_set = set(primer_dict.keys()) - obs_pos_primer_set
+        
+        # this is our true positives
+        TP_primer_set = set(blast_df_t[key].dropna().index.tolist())
+        # this is standard definition of true negatives
+        TN_primer_set = obs_neg_primer_set & pred_neg_primer_set
+        # FP is refined to those we falsely indentified and they're predicted to be negatives
+        FP_primer_set = (obs_pos_primer_set - TP_primer_set) & pred_neg_primer_set
+        # FN is made of 2 parts: those we didn't identify and those didn't meet blast threshold
+        FN_primer_set = (obs_neg_primer_set - TN_primer_set) | (obs_pos_primer_set - TP_primer_set - FP_primer_set)
+        
+        df_dict[key] = list(map(len,(TP_primer_set,FP_primer_set,FN_primer_set,TN_primer_set)))
+        
         logger.info(f"sample is: {key}")
-        logger.info (f"FP are: {merged_df[(merged_df['prediction'] == 0) & (merged_df['blast'] >= 0)].index.tolist()}")
-        logger.info (f"sanity check: {len(primer_dict)}, {len(primer_dict) == (TP + TN + FP + FN)}")
+        logger.info(f"FP are: {FP_primer_set}")
+        logger.info(f"FN are: {FN_primer_set}")
+        logger.info(f"TN are: {TN_primer_set}")
+        logger.info(f"sanity check: {len(primer_dict)}, "
+                    f"{len(primer_dict) == sum(df_dict[key])}")
+        logger.info(f"sanity check 2, the following 3 sets SHOULD be emptry")
+        logger.info(TP_primer_set & FP_primer_set)
+        logger.info(TP_primer_set & FN_primer_set)
+        logger.info(FN_primer_set & FP_primer_set)
         
     return df_dict
 
@@ -532,16 +539,17 @@ def main():
 
     # the filtered version of our count table df
     df = merge_count_blast(df, primer_list, blast_df)
-    new_df = df.sum()
-    new_df = split_samle_primer(new_df, get_column_list(new_df), sample_list, raw_idx)
+    blast_df = df.sum()
+    blast_df = split_samle_primer(blast_df, get_column_list(blast_df), sample_list, raw_idx)
     
     #print out blast filtered amplicon sequence abundance info
     if logger.isEnabledFor(logging.DEBUG):
-        new_df['mean'] = new_df.fillna(0).mean(axis=1)
-        new_df.to_csv('blast_df', sep='\t') # save as a tsv file
+        blast_df['mean'] = blast_df.fillna(0).mean(axis=1)
+        blast_df.to_csv('blast_df', sep='\t') # save as a tsv file
 
-    new_df_t = new_df.T
-    df_dict = build_confusion_matrix(sample_list, new_df_t, map_dict, args['metasheet'])
+    raw_df_t = raw_df.T
+    blast_df_t = blast_df.T
+    df_dict = build_confusion_matrix(sample_list, raw_df_t, blast_df_t, map_dict, args['metasheet'])
     df = pd.DataFrame.from_dict(df_dict, orient='index')
     df.columns = ['TP','FP','FN','TN']
     df['sensitivity (TP/P)'] = df['TP']/(df['TP'] + df['FN'])
