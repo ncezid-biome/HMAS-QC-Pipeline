@@ -60,7 +60,12 @@ def process_folder(parameters):
         config.set(fixed_section, key, value)
 
     # Set the customized options for the config.ini file based on the folder name
-    config.set(fixed_section, 'count_table', f'{args.input}/{folder_name}/{folder_name}.final.count_table')
+    # count_table might be saved in temp folder
+    count_table_file = f'{args.input}/{folder_name}/{folder_name}.final.count_table'
+    if not os.path.isfile(count_table_file):
+        count_table_file = f'{args.input}/{folder_name}/temp/{folder_name}.final.count_table'
+        
+    config.set(fixed_section, 'count_table', count_table_file)
     config.set(fixed_section, 'unique_fasta', f'{args.input}/{folder_name}/{folder_name}.final.unique.fasta')
     
     # create a sample.csv for this folder
