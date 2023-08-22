@@ -61,7 +61,8 @@ non_match_primer_file_extension = '_not_match_primers.txt'
 metasheet_file_extension = '_metasheet.csv'
 metasheet_table_columns = ['seq_id', 'primer', 'sample']
 mismatch_percent = 6
-max_amplicon_len = 375
+min_amplicon_len = 100
+max_amplicon_len = 500
 max_seqid_len = 50
 
 
@@ -141,7 +142,7 @@ def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
                     endIndex = endIndex - reverse_primer_length
 
                     # check if extracted amplicon is over the max length
-                    if endIndex - startIndex <= max_amplicon_len:
+                    if endIndex - startIndex >= min_amplicon_len and endIndex - startIndex <= max_amplicon_len:
                         
                         full_length_record = full_length_dict[seq_id]  # created SeqRecord from amplicon and add to list
                         extracted_sequence = full_length_record.seq[startIndex:endIndex]
@@ -154,7 +155,10 @@ def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
                         # seqid_isolate_list.append(seq_id)
                         seqid_isolate_list.append(file_base)
                         
-                        not_match_primer_list.pop() #remove this matched primers from the list
+                        try:
+                            not_match_primer_list.pop() #remove this matched primers from the list
+                        except IndexError:
+                            pass
 
             elif "Primer name " in line:
                 # [\w-] is for any word or hyphen (which is not included in word definition)
