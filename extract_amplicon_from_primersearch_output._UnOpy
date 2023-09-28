@@ -40,6 +40,7 @@ Instead of:
 '''usage: python3 extract_amplicon_from_primersearch_output.py 
         -s fastaToParse.fasta -p primers_list_file
 '''
+
 import re
 from Bio import Seq, SeqIO, SeqUtils, SeqRecord
 from Bio.Seq import Seq
@@ -76,11 +77,22 @@ def runPrimerSearch(seq_file, primer_file, output_file):
         sys.exit()
         
     command = ['primersearch','-seqall',seq_file,'-infile',primer_file,
-               '-mismatchpercent',f'{mismatch_percent}','-outfile',output_file]
-    process = subprocess.run(command, capture_output=True, text=True)
-    if process.returncode == 0:
-        return(output_file)
-    
+               '-mismatchpercent',f'{mismatch_percent}','-snucleotide','-outfile',output_file]
+    try:
+        # Use subprocess.PIPE for both stdout and stderr
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = process.communicate()  # Capture stdout and stderr separately
+
+        if process.returncode == 0:
+            return output_file
+        else:
+            print(f"PrimerSearch failed with the following error message:\n{stderr}")
+            return None
+
+    except Exception as e:
+        print(f"An error occurred while running PrimerSearch: {str(e)}")
+        return None
+     
 
 def extractIndex(hit_line_string):
     '''Extract and return hit position from Emboss primersearch forward or reverse strand hit line.'''
@@ -195,7 +207,7 @@ if __name__ == "__main__":
         fasta_list.extend(list(glob.glob(f"{fastaToParse}/*.fasta")))
     else:
         fasta_list.append(fastaToParse)
-        
+    print('fasta_list: ' + str(fasta_list))    
     def concurrent_work(fasta_file):
         
         output_dir = f"{Path.cwd()}/primersearch/"
@@ -205,7 +217,7 @@ if __name__ == "__main__":
         if primersearch_results is None:
             print (f"primersearch does not generate any results ! exitting")
             sys.exit()
-            
+        #print('primersearch_results: ' + str(primersearch_results))
         # read full-length fasta sequences into dict of SeqrRecords with key = record.id
         full_length_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
         extracted_amplicon_list, not_match_primer_list, _3lists_for_df \
@@ -225,6 +237,6 @@ if __name__ == "__main__":
         df = pd.DataFrame(_3lists_for_df).T
         df.columns = metasheet_table_columns
         df.to_csv(f"{output_dir}{file_base}{metasheet_file_extension}", index=False)
-        
+	        
     with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
         results = executor.map(concurrent_work, fasta_list)

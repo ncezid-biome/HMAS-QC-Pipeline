@@ -3,3 +3,8 @@
 /home/ick4/data/pipeline/pipeline_old.py
 /home/ick4/data/pipeline/__pycache__
 /home/ick4/data/pipeline/tests
+UnO_test/1143560907.fasta
+extract_amplicon_from_primersearch_output.py
+extract_amplicon_from_primersearch_output_print_minlen.py
+extract_amplicon_from_primersearch_output_minlen_copy.py
+extract_amplicon_from_primersearch_output.py
