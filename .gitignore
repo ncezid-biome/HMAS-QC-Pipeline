@@ -8,3 +8,5 @@ extract_amplicon_from_primersearch_output.py
 extract_amplicon_from_primersearch_output_print_minlen.py
 extract_amplicon_from_primersearch_output_minlen_copy.py
 extract_amplicon_from_primersearch_output.py
+.idea
+UnO_test
