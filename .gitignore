@@ -12,3 +12,6 @@ extract_amplicon_from_primersearch_output_UnO.py
 extract_amplicon_from_primersearch_output_UnO.py
 UnO_test/T3Pio_MRI_Salmonella_Primers.txt
 UnO_test/UnO_primer_workflow.txt
+UnO_tests/1143560907.fasta
+UnO_tests/T3Pio_MRI_Salmonella_Primers.txt
+UnO_tests/UnO_primer_workflow.txt
