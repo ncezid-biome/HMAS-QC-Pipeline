@@ -55,6 +55,8 @@ import os
 import glob
 import concurrent.futures
 from pathlib import Path
+import logging
+from logging.handlers import RotatingFileHandler
 
 amplicon_file_extension = '_extractedAmplicons.fasta'
 non_match_primer_file_extension = '_not_match_primers.txt'
@@ -62,7 +64,19 @@ metasheet_file_extension = '_metasheet.csv'
 metasheet_table_columns = ['seq_id', 'primer', 'sample']
 mismatch_percent = 6
 max_amplicon_len = 375
-max_seqid_len = 50
+max_seqid_len = 80
+max_worker_num = 10
+LOG_FILE = r'primersearch_amplicon_prediction.log'
+
+log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s(%(lineno)d) - %(message)s')
+log_handler = RotatingFileHandler(LOG_FILE, mode='a', maxBytes=5*1024*1024,
+                                 backupCount=5, encoding=None, delay=0)
+log_handler.setFormatter(log_formatter)
+log_handler.setLevel(logging.INFO)
+
+logger = logging.getLogger('root')
+logger.setLevel(logging.INFO)
+logger.addHandler(log_handler)
 
 
 def runPrimerSearch(seq_file, primer_file, output_file):
@@ -72,7 +86,7 @@ def runPrimerSearch(seq_file, primer_file, output_file):
     '''
     
     if shutil.which('primersearch') is None:
-        print (f"primersearch is not found on PATH")
+        logger.error(f"primersearch is not found on PATH")
         sys.exit()
         
     command = ['primersearch','-seqall',seq_file,'-infile',primer_file,
@@ -118,7 +132,8 @@ def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
         seqid_isolate_list = []
 
         for line in inputFile:  # read in each line
-            if "Amplimer 1" in line.strip():  # grab number of amplier
+            if "Amplimer " in line.strip():  # grab number of amplier
+                ampl_count += 1
                 line = inputFile.readline().strip() # read the next line
                 if "Sequence: " in line:  # grab sequence identifier
                     seq_id = line.replace("Sequence: ", "").strip()
@@ -130,7 +145,12 @@ def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
                     reverse_hit_line = inputFile.readline().strip()  # next line will be reverse hit
                     reverse_primer_length = extractPrimerLength(reverse_hit_line)
 
-                    forwardHitPosition = extractIndex(forward_hit_line)  # determine F and R hit positions
+                    if "forward" in forward_hit_line: # check if F primer hits the forward strand
+                        forwardHitPosition = extractIndex(forward_hit_line)  # determine F or R hit positions
+                    else:
+                        forwardHitPosition = extractIndex(reverse_hit_line) # now R primer hits the forward strand
+                        logger.info(f'For Amplimer {ampl_count}, FR primer of {primer_name} hit reverse strand ! {seq_id}')
+
                     amplimer_length_line = inputFile.readline().strip()  # grab next line
                     amplicon_length = extractAmpliconLength(amplimer_length_line)  # determine length of amplicon
                     startIndex = forwardHitPosition - 1  # primersearch results weren't zero-indexed
@@ -146,15 +166,22 @@ def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
                         full_length_record = full_length_dict[seq_id]  # created SeqRecord from amplicon and add to list
                         extracted_sequence = full_length_record.seq[startIndex:endIndex]
                         # ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{seq_id}') 
-                        ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{file_base}'[:max_seqid_len])
+                        # ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{file_base}'[:max_seqid_len])
+                        ampliconRec = SeqRecord(extracted_sequence, id=f'{primer_name}-{file_base}-ampl{ampl_count}'[:max_seqid_len])
                         extracted_amplicon_list.append(ampliconRec)
                         
-                        seqid_list.append(f'{primer_name}-{file_base}'[:max_seqid_len])
+                        # seqid_list.append(f'{primer_name}-{file_base}'[:max_seqid_len])
+                        seqid_list.append(f'{primer_name}-{file_base}-ampl{ampl_count}'[:max_seqid_len])
                         seqid_primer_list.append(primer_name)
                         # seqid_isolate_list.append(seq_id)
                         seqid_isolate_list.append(file_base)
                         
-                        not_match_primer_list.pop() #remove this matched primers from the list
+                        # make sure it's not empty list and we only do this once
+                        if not_match_primer_list and ampl_count == 1:
+                            not_match_primer_list.pop() #remove this matched primers from the list
+
+                    else:
+                        logger.info(f'For {seq_id}, \nAmplimer {ampl_count}, {primer_name} is too long with length {endIndex - startIndex}')
 
             elif "Primer name " in line:
                 # [\w-] is for any word or hyphen (which is not included in word definition)
@@ -162,6 +189,7 @@ def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
                 result = re.search(r'Primer name\s+([\w-]{1,})', line.strip())
                 primer_name = result.group(1)
                 not_match_primer_list.append(primer_name)
+                ampl_count = 0
         
     return (extracted_amplicon_list, not_match_primer_list, 
             [seqid_list, seqid_primer_list, seqid_isolate_list])
@@ -200,7 +228,7 @@ if __name__ == "__main__":
         file_base = Path(fasta_file).stem # basename of the fasta file without .fasta extension
         primersearch_results = runPrimerSearch(fasta_file, primerlist_file, f"{output_dir}{file_base}.ps")
         if primersearch_results is None:
-            print (f"primersearch does not generate any results ! exitting")
+            logger.error(f"primersearch does not generate any results ! exitting")
             sys.exit()
             
         # read full-length fasta sequences into dict of SeqrRecords with key = record.id
@@ -223,5 +251,5 @@ if __name__ == "__main__":
         df.columns = metasheet_table_columns
         df.to_csv(f"{output_dir}{file_base}{metasheet_file_extension}", index=False)
         
-    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_worker_num) as executor:
         results = executor.map(concurrent_work, fasta_list)
