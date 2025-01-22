@@ -103,6 +103,11 @@ if there is any sra which fails in the process, the script will generate a `sra-
 >sample-1    sra-1  
 >sample-2    sra-2   
 
+4. If you already have all the contigs file (.fastq.gz format) in one folder. I have a nextflow script to assemble them and run quast to evaluate the quality of assembly [assemble_quast script](https://github.com/ncezid-biome/HMAS-QC-Pipeline/tree/dev/helper_scripts/assemble_quast/)  
+
+>  ` nextflow run main.nf --reads <path to the reads> --outdir <path to the output folder>`
+
+It will create a folder for each contig where there are a `assembled.fasta` file and a `.tsv` file for the quast result
 <br>  
 
 ---
