@@ -7,14 +7,32 @@ import subprocess
 import utilities
 from Bio import SeqIO
 import argparse
+import logging
+from logging.handlers import RotatingFileHandler
 
-import random
+LOG_FILE = r'pairwise_diff_matrix.log'
+
+log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s(%(lineno)d) - %(message)s')
+log_handler = RotatingFileHandler(LOG_FILE, mode='a', maxBytes=5*1024*1024,
+                                 backupCount=5, encoding=None, delay=0)
+log_handler.setFormatter(log_formatter)
+log_handler.setLevel(logging.INFO)
+
+logger = logging.getLogger('root')
+logger.setLevel(logging.INFO)
+logger.addHandler(log_handler)
 
 '''
 This script generates pairwise difference matrix for given amplicon sequnence fasta files. It checks for all the primer
 pair sequences/allel sites between any two of those amplicon fasta files. And reports the number of differences if those
 two sequences are not exactly the same in either the standard orientation or one of the sequences is in reverse compliment
 position
+
+run it as follows to generate the difference matrix necessary to generate UPGMA tree 
+python ~/HMAS_QC_Pipeline/helper_scripts/pairwise_diff_matrix.py -o 1810MLJFX-1.csv -d primersearch -y y
+
+without -y y, and you have both the difference and the total common primers (alleles) in the output, i.e. "13/2441"
+replace -y y with -n n, you get the result as a float value, i.e. "0.005"
 '''
 
 #primer information (can be passed on through command line arguments)
@@ -34,6 +52,7 @@ def parse_argument():
     parser.add_argument('-d', '--directory', metavar = '', required = True, help = 'Specify fasta file directory')
     parser.add_argument('-p', '--primers', metavar = '', required = False, help = 'Specify oligos/(primer) file')
     parser.add_argument('-n', '--numeric', metavar = '', required = False, help = 'turn on numeric flag')
+    parser.add_argument('-y', '--diff_only', metavar = '', required = False, help = 'show only the difference')
     return parser.parse_args()
 
 #helper method to check if two sequences are different, returns True if they're different
@@ -46,7 +65,7 @@ def check_diff_by_primer(seq1,seq2):
     else:
         return True
     
-def pairwise_by_allprimers(file_dir, full_primer_list, numeric_flag):
+def pairwise_by_allprimers(file_dir, full_primer_list, numeric_flag, diff_only):
     '''
     this method performs pairwise difference checking on all the isolate fasta files in the given directory, over all 
     primers/allel sites.  Each cell is in the format of: # of difference / # of total common primers/allel sites
@@ -65,12 +84,12 @@ def pairwise_by_allprimers(file_dir, full_primer_list, numeric_flag):
     # diff_seq_list = []
     
     df_list = []
-    for f in glob.glob(f'{file_dir}/*.fasta'):
+    for f in sorted(glob.glob(f'{file_dir}/*.fasta')):
     # for f in glob.glob(f'{file_dir}/2012K-1532_extractedAmplicons.fasta'):
 
         row_dict = SeqIO.to_dict(SeqIO.parse(f, "fasta"))
         row_list = []
-        for k in glob.glob(f'{file_dir}/*.fasta'):
+        for k in sorted(glob.glob(f'{file_dir}/*.fasta')):
         # for k in glob.glob(f'{file_dir}/Sal_JKX_2015K-0074_extractedAmplicons.fasta'):
 
             col_dict = SeqIO.to_dict(SeqIO.parse(k, "fasta"))
@@ -81,32 +100,33 @@ def pairwise_by_allprimers(file_dir, full_primer_list, numeric_flag):
                 row_seq_list = [val for key,val in row_dict.items() if primer in key]
                 col_seq_list = [val for key,val in col_dict.items() if primer in key]   
                 
+                # if no amplimer with either sequence, we label the primer as null
                 if len(row_seq_list) < 1 or len(col_seq_list) < 1:
                     total_primer -= 1
+                    if len(row_seq_list) < 1:
+                        logger.warning(f"{Path(f).stem} has no {primer}")
+                    if len(col_seq_list) < 1 and k != f:
+                        logger.warning(f"{Path(k).stem} has no {primer}")
                 else:
+                    # if more than 1 amplimer with either sequence, we label the primer as null
                     if len(row_seq_list) > 1 or len(col_seq_list) > 1:
-                        print (f"{primer} has more than 1 match in {f} or {k}")
-                    if check_diff_by_primer(row_seq_list[0].seq, col_seq_list[0].seq):
+                        total_primer -= 1
+                        if len(row_seq_list) > 1:
+                            logger.warning(f"{primer} has {len(row_seq_list)} amplimers with {Path(f).stem}")
+                        if len(col_seq_list) > 1 and k != f:
+                            logger.warning(f"{primer} has {len(col_seq_list)} amplimers with {Path(k).stem}")
+
+                    elif check_diff_by_primer(row_seq_list[0].seq, col_seq_list[0].seq):
                         diff_count += 1
-                        
-                    #     diff_seq_list.append((primer,row_seq_list[0].seq, col_seq_list[0].seq))
-                    # else:
-                    #     same_seq_list.append((primer,row_seq_list[0].seq, col_seq_list[0].seq))
 
             if numeric_flag:
                 row_list.append(f"{diff_count/total_primer:.3f}")
+            elif diff_only:
+                row_list.append(f" {diff_count}")
             else:
                 row_list.append(f" {diff_count}/{total_primer}")
         df_list.append(row_list)
         
-    # print (f"same seq count is: {len(same_seq_list)}")
-    # print (f"diff seq count is: {len(diff_seq_list)}")
-    # print (random.sample(same_seq_list,10))
-    # print ('********************************')
-    # print ('********************************')
-    # print ('********************************')
-    # print (random.sample(diff_seq_list,10))
-    
     return df_list
             
 #offer similar functionality as 'pairwise_by_allprimers', but it calls upon vsearch --search_exact command to 
@@ -144,11 +164,12 @@ if __name__ == "__main__":
         primers = utilities.Primers(oligos_file)
     full_primer_list = primers.pnames
     
-    df_list = pairwise_by_allprimers(args.directory, full_primer_list, args.numeric)
+    df_list = pairwise_by_allprimers(args.directory, full_primer_list, args.numeric, args.diff_only)
     
     file_name_list = [Path(f).stem.split('.')[0] for f in glob.glob(f'{args.directory}/*.fasta') ]
-    df = pd.DataFrame(df_list,columns=file_name_list)
-    df.index = file_name_list
+    file_name_list_sorted = sorted(file_name_list)
+    df = pd.DataFrame(df_list,columns=file_name_list_sorted)
+    df.index = file_name_list_sorted
     df.to_csv(f'{args.output}')
     # df.to_csv(f'{file_dir}/pairwise_diff_revcomp_1711WAJJP_1.csv')
     # df.to_csv(f'{file_dir}/pairwise_diff_11_allprimers_revcomp.csv')
