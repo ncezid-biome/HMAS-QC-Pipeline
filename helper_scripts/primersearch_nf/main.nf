@@ -1,5 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
+import java.nio.file.Paths
+
 
 params.outdir = workflow.launchDir
 params.reads = workflow.launchDir
@@ -18,12 +20,21 @@ primer_name left_primer_sequence  right_primer_sequence
 
 Channel
   .fromPath("${params.reads}/**/*.fasta")
-//   .view()
   .map { file ->
-    def sample = file.getBaseName()  // removes extension
+    def sample = file.getBaseName()
+    def inputFolder = file.getParent().getName()           // e.g., SRR30637285
+    def outputFolder = Paths.get(params.outdir, "${inputFolder}_assembled")
+    tuple(sample, file, outputFolder)
+  }
+  .filter { sample, file, outputFolder ->
+    !outputFolder.exists()
+  }
+  .map { sample, file, outputFolder ->
     tuple(sample, file)
   }
   .set { reads }
+
+
 
 process run_primersearch {
     publishDir "${params.outdir}/${sample}", mode: 'copy'
@@ -61,7 +72,7 @@ process parse_primersearch {
     tuple val(sample), path(fasta_file), path(ps_results)
     
     output:
-    path ("*_extractedAmplicons.fasta"), emit: parse_primersearch, optional: true
+    tuple val(sample), path ("*_extractedAmplicons.fasta"), emit: parse_primersearch, optional: true
     path ("*.txt"), emit: empty_primers, optional: true
 
     shell:
@@ -73,9 +84,32 @@ process parse_primersearch {
 }
 
 
+process fasta_to_json {
+    publishDir "${params.outdir}/${sample}", mode: 'copy'
+    tag "${sample}"
+    debug true
+    // errorStrategy 'retry'
+    // maxRetries 2
+
+    input:
+    tuple val(sample), path(fasta_file)
+    
+    output:
+    path ("*.json"), emit: json_file, optional: true
+
+    shell:
+    '''
+    fasta_to_json.py --fasta_file !{fasta_file} --sample_id !{sample} --primers !{params.primers}
+
+    '''
+
+}
+
+
 workflow {
     primersearch_ch = run_primersearch(reads)
     joined_ch = reads.join(primersearch_ch)
-    parse_primersearch(joined_ch)
+    amplicon_fasta_ch = parse_primersearch(joined_ch).parse_primersearch
+    fasta_to_json(amplicon_fasta_ch)
     
 }
