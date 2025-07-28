@@ -19,7 +19,7 @@ primer_name left_primer_sequence  right_primer_sequence
 */
 
 Channel
-  .fromPath("${params.reads}/**/*.fasta")
+  .fromPath(["${params.reads}/**/*.fasta", "${params.reads}/*.fasta"])
   .map { file ->
     def sample = file.getBaseName()
     def inputFolder = file.getParent().getName()           // e.g., SRR30637285
@@ -42,7 +42,7 @@ process run_primersearch {
     debug true
     errorStrategy 'retry'
     maxRetries 2
-    maxForks = 36
+    maxForks = 16
 
     input:
     tuple val(sample), path(fasta_file)
@@ -54,7 +54,9 @@ process run_primersearch {
     '''
     run_primersearch.py --primers !{params.primers} \
                         --sequence !{fasta_file} \
-                        --output "!{sample}.ps"
+                        --output "!{sample}.ps" \
+                        --mismatch !{params.mismatchpercent}
+
 
     '''
 
@@ -77,7 +79,7 @@ process parse_primersearch {
 
     shell:
     '''
-    parse_primersearch.py --results !{ps_results} --sequence !{fasta_file}
+    parse_primersearch.py --results !{ps_results} --sequence !{fasta_file} --amp_len !{params.max_amplicon_len}
 
     '''
 

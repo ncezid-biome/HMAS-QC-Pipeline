@@ -20,7 +20,7 @@ logger = logging.getLogger('run_primersearch')
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
 
-def runPrimerSearch(seq_file, primer_file, output_file):
+def runPrimerSearch(seq_file, primer_file, output_file, mismatch):
     if shutil.which('primersearch') is None:
         logger.error("primersearch is not found on PATH")
         sys.exit(1)
@@ -33,7 +33,7 @@ def runPrimerSearch(seq_file, primer_file, output_file):
         primersearch_path,
         '-seqall', seq_file,
         '-infile', primer_file,
-        '-mismatchpercent', '6',
+        '-mismatchpercent', str(mismatch),
         '-outfile', output_file
     ]
 
@@ -50,8 +50,9 @@ def parse_args():
     parser.add_argument('-s', '--sequence', required=True, help='FASTA sequence file')
     parser.add_argument('-p', '--primers', required=True, help='Primer list file')
     parser.add_argument('-o', '--output', required=True, help='Output .ps file name')
+    parser.add_argument('-m', '--mismatch', type=int, required=True, help='allowed mismatch percentage')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
-    runPrimerSearch(args.sequence, args.primers, args.output)
+    runPrimerSearch(args.sequence, args.primers, args.output, args.mismatch)

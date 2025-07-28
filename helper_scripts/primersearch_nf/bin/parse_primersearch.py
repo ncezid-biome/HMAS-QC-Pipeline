@@ -10,8 +10,6 @@ from logging.handlers import RotatingFileHandler
 
 amplicon_file_extension = '_extractedAmplicons.fasta'
 non_match_primer_file_extension = '_not_match_primers.txt'
-mismatch_percent = 6
-max_amplicon_len = 375
 max_seqid_len = 80
 LOG_FILE = 'parse_primersearch.log'
 
@@ -39,7 +37,7 @@ def extractAmpliconLength(amplimer_length_line):
     matches = regex.findall(amplimer_length_line)
     return int(matches[0]) if matches else 0
 
-def parsePrimerSearch(primersearch_results, full_length_dict, file_base):
+def parsePrimerSearch(primersearch_results, full_length_dict, file_base, max_amplicon_len):
     extracted_amplicon_list = []
     not_match_primer_list = []
     seqid_list = []
@@ -95,13 +93,15 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Parse primersearch results")
     parser.add_argument('-s', '--sequence', required=True, help='Original FASTA sequence file')
     parser.add_argument('-r', '--results', required=True, help='Primersearch output .ps file')
+    parser.add_argument('-l', '--amp_len', type=int, required=True, help='allowed max amplicon length')
+    
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
     file_base = Path(args.sequence).stem
     full_length_dict = SeqIO.to_dict(SeqIO.parse(args.sequence, "fasta"))
-    amplicons, not_match_primer_list = parsePrimerSearch(args.results, full_length_dict, file_base)
+    amplicons, not_match_primer_list = parsePrimerSearch(args.results, full_length_dict, file_base, args.amp_len)
 
     with open(f'{file_base}{amplicon_file_extension}', 'w') as f:
         for rec in amplicons:

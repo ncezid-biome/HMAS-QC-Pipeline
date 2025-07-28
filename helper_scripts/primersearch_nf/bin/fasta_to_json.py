@@ -43,7 +43,7 @@ def process_fasta_file(fasta_file, primer_ids, sample_id):
             h = hash_sequence(str(record.seq))
             values[primer_key] = h
         else:
-            # print(f"Warning: Skipping record with ambiguous/missing primer match: {record.id}")
+            print(f"Warning: Skipping record with ambiguous/missing primer match: {record.id}")
             pass
 
     result = {
