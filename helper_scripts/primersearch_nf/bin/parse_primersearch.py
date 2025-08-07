@@ -49,6 +49,7 @@ def parsePrimerSearch(primersearch_results, full_length_dict, file_base, max_amp
             if "Amplimer " in line:
                 ampl_count += 1
                 seq_id = inputFile.readline().strip().replace("Sequence: ", "")
+                seq_id = seq_id.split()[0]
                 description = inputFile.readline().strip()
                 forward_hit_line = inputFile.readline().strip()
                 forward_primer_length = extractPrimerLength(forward_hit_line)
@@ -100,7 +101,23 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     file_base = Path(args.sequence).stem
-    full_length_dict = SeqIO.to_dict(SeqIO.parse(args.sequence, "fasta"))
+    # full_length_dict = SeqIO.to_dict(SeqIO.parse(args.sequence, "fasta"))
+
+    def extract_accession(record):
+        # Example: convert 'gi|116740300|emb|AM263198.1|' to 'AM263198.1'
+        parts = record.id.split('|')
+        for part in parts:
+            if part.count('.') == 1 and part.replace('.', '').isalnum():
+                return part
+        return record.id  # fallback if nothing matches
+
+    full_length_dict = SeqIO.to_dict(
+        SeqIO.parse(args.sequence, "fasta"),
+        key_function=extract_accession
+    )
+
+
+
     amplicons, not_match_primer_list = parsePrimerSearch(args.results, full_length_dict, file_base, args.amp_len)
 
     with open(f'{file_base}{amplicon_file_extension}', 'w') as f:
